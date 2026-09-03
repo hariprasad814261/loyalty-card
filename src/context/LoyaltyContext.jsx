@@ -9,6 +9,58 @@ export const normalizePhone = (p) => {
   return digits.length > 10 ? digits.slice(-10) : digits;
 };
 
+// Monotonic CRDT customer merger: visit counts and points NEVER revert backwards!
+export const mergeCustomerRecords = (localList = [], incomingList = []) => {
+  const map = new Map();
+
+  // 1. Seed with local records
+  (localList || []).forEach(cust => {
+    if (!cust?.phone) return;
+    const clean = normalizePhone(cust.phone);
+    const key = `${cust.restaurantId || 'rest'}_${clean}`;
+    map.set(key, { ...cust, phone: clean });
+  });
+
+  // 2. Merge incoming records preserving highest visits & spend
+  (incomingList || []).forEach(inc => {
+    if (!inc?.phone) return;
+    const clean = normalizePhone(inc.phone);
+    const key = `${inc.restaurantId || 'rest'}_${clean}`;
+    if (!map.has(key)) {
+      map.set(key, { ...inc, phone: clean });
+    } else {
+      const existing = map.get(key);
+      const higherVisits = Math.max(Number(existing.visits) || 0, Number(inc.visits) || 0);
+      const higherSpend = Math.max(Number(existing.totalSpend) || 0, Number(inc.totalSpend) || 0);
+      const higherPoints = Math.max(Number(existing.loyaltyPoints) || 0, Number(inc.loyaltyPoints) || 0);
+
+      // Merge vouchers uniquely by code
+      const voucherMap = new Map();
+      (existing.vouchers || []).forEach(v => { if (v?.code) voucherMap.set(v.code, v); });
+      (inc.vouchers || []).forEach(v => {
+        if (v?.code && (!voucherMap.has(v.code) || v.status === 'redeemed')) {
+          voucherMap.set(v.code, v);
+        }
+      });
+
+      map.set(key, {
+        ...existing,
+        ...inc,
+        phone: clean,
+        visits: higherVisits,
+        totalSpend: higherSpend,
+        loyaltyPoints: higherPoints,
+        vouchers: Array.from(voucherMap.values()),
+        lastVisit: (new Date(existing.lastVisit || 0) > new Date(inc.lastVisit || 0))
+          ? existing.lastVisit
+          : inc.lastVisit
+      });
+    }
+  });
+
+  return Array.from(map.values());
+};
+
 const LoyaltyContext = createContext();
 
 export function LoyaltyProvider({ children }) {
@@ -177,7 +229,8 @@ export function LoyaltyProvider({ children }) {
               setLastStampAnimationTimestamp(Date.now());
             }
 
-            return data.customers;
+            // CRDT Monotonic Merge: visits & points NEVER revert backwards!
+            return mergeCustomerRecords(prev, data.customers);
           });
         }
       }
@@ -191,6 +244,37 @@ export function LoyaltyProvider({ children }) {
     const interval = setInterval(syncWithServer, 1200);
     return () => clearInterval(interval);
   }, [activeCustomerPhone, activeRestaurantId]);
+
+  // Cloud Real-Time Pub/Sub Channel (Laptop Cashier <-> Mobile Phone across Internet/Hotspot)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.EventSource) return;
+    const channelName = `loyaltyforge_room_${activeRestaurantId || 'rest_001'}`;
+    let es;
+    try {
+      es = new EventSource(`https://ntfy.sh/${channelName}/sse`);
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data?.message) {
+            const parsed = JSON.parse(data.message);
+            if (parsed.type === 'STAMP_AWARDED' && parsed.customer) {
+              setCustomers(prev => mergeCustomerRecords(prev, [parsed.customer]));
+              const guestStored = typeof window !== 'undefined' ? localStorage.getItem('guest_loyalty_phone') : '';
+              const targetClean = normalizePhone(guestStored || activeCustomerPhone);
+              const custClean = normalizePhone(parsed.customer.phone);
+              if (custClean === targetClean && parsed.customer.restaurantId === activeRestaurantId) {
+                setLastStampAnimationTimestamp(Date.now());
+              }
+            }
+          }
+        } catch {}
+      };
+    } catch {}
+
+    return () => {
+      if (es) es.close();
+    };
+  }, [activeRestaurantId, activeCustomerPhone]);
 
   // Multi-tab real-time sync listener (Instant confetti on customer pass when cashier stamps)
   useEffect(() => {
@@ -206,13 +290,7 @@ export function LoyaltyProvider({ children }) {
           setLastStampAnimationTimestamp(Date.now());
         }
         if (payload?.customer) {
-          setCustomers(prev => {
-            const exists = prev.some(c => normalizePhone(c.phone) === normalizePhone(payload.customer.phone) && c.restaurantId === payload.customer.restaurantId);
-            if (exists) {
-              return prev.map(c => (normalizePhone(c.phone) === normalizePhone(payload.customer.phone) && c.restaurantId === payload.customer.restaurantId) ? payload.customer : c);
-            }
-            return [...prev, payload.customer];
-          });
+          setCustomers(prev => mergeCustomerRecords(prev, [payload.customer]));
         }
       }
     };
@@ -489,20 +567,32 @@ export function LoyaltyProvider({ children }) {
     setActiveCustomerPhone(cleanPhone);
     setLastStampAnimationTimestamp(Date.now());
 
-    // Broadcast across browser tabs and devices in real-time
+    // Broadcast across browser tabs on same device
     broadcastSync('STAMP_AWARDED', {
       phone: cleanPhone,
       restaurantId: activeRestaurantId,
       customer: targetUpdatedCust
     });
 
-    // Broadcast to server (if local API is active)
+    // Broadcast across cloud to mobile phones on any network (Mobile Data, Hotspot, Wi-Fi)
+    try {
+      fetch(`https://ntfy.sh/loyaltyforge_room_${activeRestaurantId}`, {
+        method: 'POST',
+        headers: { 'Title': 'STAMP_AWARDED', 'Priority': 'high' },
+        body: JSON.stringify({
+          type: 'STAMP_AWARDED',
+          customer: targetUpdatedCust
+        })
+      }).catch(() => {});
+    } catch {}
+
+    // Broadcast to server (local API / Vercel serverless)
     fetch('/api/loyalty/stamp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone: cleanPhone, restaurantId: activeRestaurantId, billAmount: amountNum })
     }).then(r => r.json()).then(data => {
-      if (data?.customers) setCustomers(data.customers);
+      if (data?.customers) setCustomers(prev => mergeCustomerRecords(prev, data.customers));
     }).catch(() => {});
 
     return {

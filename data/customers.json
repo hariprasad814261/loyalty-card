@@ -155,12 +155,12 @@
     "restaurantId": "rest_burmix",
     "phone": "9840123456",
     "name": "Guest 3456",
-    "visits": 2,
+    "visits": 4,
     "totalSpend": 750,
-    "loyaltyPoints": 750,
+    "loyaltyPoints": 770,
     "createdAt": "2026-09-03T12:30:07.233Z",
     "vouchers": [],
     "isVip": false,
-    "lastVisit": "2026-09-03T12:39:15.903Z"
+    "lastVisit": "2026-09-03T14:29:28.448Z"
   }
 ]
