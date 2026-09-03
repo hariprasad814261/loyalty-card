@@ -66,9 +66,10 @@ export default function StandeeGenerator() {
   // Do not default scanned URL to port 5173 in production.
   // Only use port when on non-standard local development ports.
   const rawPort = (typeof window !== 'undefined' && window.location.port) ? window.location.port : '';
-  const portSuffix = (rawPort && rawPort !== '80' && rawPort !== '443') 
-    ? `:${rawPort}` 
-    : (isHostedOnline ? '' : ':5173');
+  const currentPort = rawPort || (isHostedOnline ? '' : '5173');
+  const portSuffix = (currentPort && currentPort !== '80' && currentPort !== '443') 
+    ? `:${currentPort}` 
+    : '';
 
   const [wifiIp, setWifiIp] = useState(resolveSafeWifiHost);
   const [urlMode, setUrlMode] = useState(isHostedOnline ? 'current' : 'wifi'); // 'current' | 'wifi' | 'custom'
@@ -241,7 +242,7 @@ export default function StandeeGenerator() {
           </h4>
           <p style={{ fontSize: '11.5px', color: '#D4CDC3', lineHeight: 1.5 }}>
             When scanning a QR code with a physical mobile camera, the phone cannot connect to <code>localhost</code> (because on the phone, <code>localhost</code> means the phone itself).<br />
-            • <strong>For Local Phone Testing:</strong> Select <strong>"Local Wi-Fi Mode"</strong> below so the QR encodes your computer's local Wi-Fi IP (<code>http://{wifiIp}:{currentPort}</code>). Both phone and PC must be on the same Wi-Fi.<br />
+            • <strong>For Local Phone Testing:</strong> Select <strong>"Local Wi-Fi Mode"</strong> below so the QR encodes your computer's local Wi-Fi IP (<code>http://{wifiIp}{portSuffix || (currentPort ? `:${currentPort}` : '')}</code>). Both phone and PC must be on the same Wi-Fi.<br />
             • <strong>For Client Deployment:</strong> Select <strong>"Production Domain"</strong> and enter your public website link (e.g. <code>https://loyalty.burmix.com</code> or Vercel/Cloud URL).
           </p>
         </div>
@@ -298,7 +299,7 @@ export default function StandeeGenerator() {
                 <div className="lf-form-group" style={{ marginTop: '4px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <label className="lf-label" style={{ fontSize: '10.5px', margin: 0 }}>
-                      Laptop Wi-Fi IPv4 Address (Port {currentPort})
+                      Laptop Wi-Fi IPv4 Address {currentPort ? `(Port ${currentPort})` : ''}
                     </label>
                     {serverIp && serverIp !== '127.0.0.1' && (
                       <button
