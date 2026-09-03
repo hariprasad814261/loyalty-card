@@ -65,9 +65,43 @@ export function LoyaltyProvider({ children }) {
   });
 
   const [activeRestaurantId, setActiveRestaurantId] = useState(() => {
+    // When a QR code is scanned in the URL, that scanned shop MUST take top priority over stale merchant sessions!
+    if (initialRoute.restId) return initialRoute.restId;
     if (merchantSession?.restaurantId) return merchantSession.restaurantId;
-    return initialRoute.restId || restaurants[0]?.id || 'rest_001';
+    return restaurants[0]?.id || 'rest_001';
   });
+
+  // Live listener for QR code scans and URL updates on mobile (popstate, hashchange, tab focus)
+  useEffect(() => {
+    const handleUrlSync = () => {
+      const route = getInitialRouteState();
+      if (route.restId) {
+        const matched = restaurants.find(r => 
+          r.id === route.restId || 
+          r.id?.toLowerCase() === String(route.restId).toLowerCase() ||
+          r.name?.toLowerCase().replace(/[^a-z0-9]/g, '') === String(route.restId).toLowerCase().replace(/[^a-z0-9]/g, '')
+        );
+        const targetId = matched ? matched.id : route.restId;
+        setActiveRestaurantId(targetId);
+        setRouteMode(route.mode);
+        setIsGuestMode(route.isGuest);
+        if (route.tab) setActiveTab(route.tab);
+      }
+    };
+
+    window.addEventListener('popstate', handleUrlSync);
+    window.addEventListener('hashchange', handleUrlSync);
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        handleUrlSync();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('popstate', handleUrlSync);
+      window.removeEventListener('hashchange', handleUrlSync);
+    };
+  }, [restaurants]);
 
   // Load customers with localStorage fallback
   const [customers, setCustomers] = useState(() => {
@@ -185,7 +219,11 @@ export function LoyaltyProvider({ children }) {
     localStorage.setItem('loyalty_customers', JSON.stringify(customers));
   }, [customers]);
 
-  const activeRestaurant = restaurants.find(r => r.id === activeRestaurantId) || restaurants[0] || DEFAULT_RESTAURANT;
+  const activeRestaurant = restaurants.find(r => 
+    r.id === activeRestaurantId || 
+    r.id?.toLowerCase() === String(activeRestaurantId).toLowerCase() ||
+    r.name?.toLowerCase().replace(/[^a-z0-9]/g, '') === String(activeRestaurantId).toLowerCase().replace(/[^a-z0-9]/g, '')
+  ) || restaurants[0] || DEFAULT_RESTAURANT;
   const activeCustomer = customers.find(c => c.phone === activeCustomerPhone && c.restaurantId === activeRestaurantId) || {
     phone: activeCustomerPhone,
     name: 'Guest Customer',

@@ -16,11 +16,12 @@ import {
   ExternalLink,
   AlertCircle,
   QrCode,
-  CheckCircle2
+  CheckCircle2,
+  Store
 } from 'lucide-react';
 
 export default function StandeeGenerator() {
-  const { activeRestaurant, setActiveTab, serverIp } = useLoyalty();
+  const { activeRestaurant, restaurants = [], switchRestaurant, setActiveTab, serverIp } = useLoyalty();
   const [format, setFormat] = useState('a5'); // 'a5' | 'a6'
   
   const getInitialHeadline = () => {
@@ -261,6 +262,41 @@ export default function StandeeGenerator() {
 
           <div className="lf-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             
+            {/* Active Restaurant Selector for Standee */}
+            <div style={{ padding: '14px', borderRadius: '14px', background: 'rgba(212, 175, 55, 0.08)', border: '1px solid rgba(212, 175, 55, 0.3)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span className="lf-label" style={{ fontWeight: 800, color: '#F3E5AB', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Store size={14} style={{ color: '#D4AF37' }} />
+                  <span>Choose Restaurant for Standee</span>
+                </span>
+                <span className="lf-badge lf-badge-gold" style={{ fontSize: '10px' }}>
+                  {activeRestaurant?.id}
+                </span>
+              </div>
+              <select
+                value={activeRestaurant?.id || 'rest_001'}
+                onChange={(e) => switchRestaurant(e.target.value)}
+                className="lf-select"
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  backgroundColor: 'rgba(20, 16, 14, 0.95)',
+                  borderColor: 'rgba(212, 175, 55, 0.4)',
+                  color: '#FDFBF7',
+                  borderRadius: '10px',
+                  cursor: 'pointer'
+                }}
+              >
+                {restaurants.map((r) => (
+                  <option key={r.id} value={r.id} style={{ background: '#1A1412', color: '#FDFBF7' }}>
+                    {r.name} ({r.id})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* QR Target URL & Hosting Mode */}
             <div style={{ padding: '14px', borderRadius: '14px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(212, 175, 55, 0.25)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

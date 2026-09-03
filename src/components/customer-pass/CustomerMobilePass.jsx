@@ -39,7 +39,16 @@ export default function CustomerMobilePass() {
 
   const currentCustomer = isGuestMode
     ? ((guestPhone && guestPhone.length >= 10)
-        ? customers.find(c => c.phone === guestPhone && c.restaurantId === activeRestaurant?.id)
+        ? (customers.find(c => c.phone === guestPhone && c.restaurantId === activeRestaurant?.id) || {
+            id: `cust_${activeRestaurant?.id || 'rest'}_${guestPhone.slice(-4)}`,
+            phone: guestPhone,
+            name: `Guest ${guestPhone.slice(-4)}`,
+            restaurantId: activeRestaurant?.id,
+            visits: 0,
+            totalSpend: 0,
+            loyaltyPoints: 0,
+            vouchers: []
+          })
         : null)
     : studioCustomer;
 
@@ -98,7 +107,7 @@ export default function CustomerMobilePass() {
   const stampActiveColor = theme.stampActiveColor || '#E5C07B';
 
   // If Guest Mode and phone is not entered yet, show the guest welcome check-in screen
-  if (isGuestMode && (!guestPhone || guestPhone.length < 10 || !currentCustomer)) {
+  if (isGuestMode && (!guestPhone || guestPhone.length < 10)) {
     return (
       <div style={{ maxWidth: '440px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }} className="animate-fade-in">
         <div className="lf-card" style={{ padding: '28px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
