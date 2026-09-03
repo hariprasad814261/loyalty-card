@@ -22,7 +22,8 @@ import { MerchantLoginModal } from '../auth/MerchantLoginModal';
 export default function CustomerMobilePass() {
   const { 
     activeRestaurant, 
-    activeCustomer, 
+    customers = [],
+    activeCustomer: studioCustomer, 
     activeCustomerPhone, 
     setActiveCustomerPhone,
     registerOrGetCustomer, 
@@ -31,13 +32,24 @@ export default function CustomerMobilePass() {
     checkIsOwnerPhone
   } = useLoyalty();
 
-  const [inputPhone, setInputPhone] = useState(activeCustomerPhone || '');
+  // In guest mode, strictly read ONLY from this guest's session; never expose shared studio customer profile
+  const guestPhone = isGuestMode 
+    ? (typeof window !== 'undefined' ? localStorage.getItem('guest_loyalty_phone') || '' : '')
+    : activeCustomerPhone;
+
+  const currentCustomer = isGuestMode
+    ? ((guestPhone && guestPhone.length >= 10)
+        ? customers.find(c => c.phone === guestPhone && c.restaurantId === activeRestaurant?.id)
+        : null)
+    : studioCustomer;
+
+  const [inputPhone, setInputPhone] = useState(guestPhone || '');
   const [showWalletExportSuccess, setShowWalletExportSuccess] = useState(null);
   const [showMerchantAuthModal, setShowMerchantAuthModal] = useState(false);
 
   const { theme = {}, program = {}, links = {} } = activeRestaurant || {};
   const totalStamps = program.totalStamps || 5;
-  const visits = activeCustomer?.visits || 0;
+  const visits = currentCustomer?.visits || 0;
   const stampsInCycle = visits % totalStamps;
   const isRewardReady = visits > 0 && stampsInCycle === 0;
 
@@ -86,7 +98,7 @@ export default function CustomerMobilePass() {
   const stampActiveColor = theme.stampActiveColor || '#E5C07B';
 
   // If Guest Mode and phone is not entered yet, show the guest welcome check-in screen
-  if (isGuestMode && (!activeCustomerPhone || activeCustomerPhone.length < 10)) {
+  if (isGuestMode && (!guestPhone || guestPhone.length < 10 || !currentCustomer)) {
     return (
       <div style={{ maxWidth: '440px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }} className="animate-fade-in">
         <div className="lf-card" style={{ padding: '28px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
@@ -215,7 +227,7 @@ export default function CustomerMobilePass() {
       {/* Phone Header Indicator */}
       {isGuestMode ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', borderRadius: '10px', background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.08)', fontSize: '11px', color: '#8E8478' }}>
-          <span>👤 Member: <strong style={{ color: '#F3E5AB' }}>+91 {activeCustomer?.phone || activeCustomerPhone}</strong></span>
+          <span>👤 Member: <strong style={{ color: '#F3E5AB' }}>+91 {currentCustomer?.phone || guestPhone}</strong></span>
           <button
             type="button"
             onClick={handleLogoutGuest}
@@ -290,7 +302,7 @@ export default function CustomerMobilePass() {
           <div style={{ textAlign: 'right' }}>
             <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', opacity: 0.6, display: 'block' }}>LOYALTY POINTS</span>
             <span style={{ fontSize: '18px', fontWeight: 900, fontFamily: 'var(--font-mono)', color: accentColor }}>
-              {activeCustomer?.loyaltyPoints || 0}
+              {currentCustomer?.loyaltyPoints || 0}
             </span>
           </div>
         </div>
@@ -313,7 +325,7 @@ export default function CustomerMobilePass() {
               <span style={{ padding: '3px 10px', borderRadius: '999px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', fontWeight: 700, color: '#34D399', border: '1px solid rgba(255,255,255,0.15)' }}>
                 {visits} Lifetime Visits
               </span>
-              {activeCustomer?.isVip && (
+              {currentCustomer?.isVip && (
                 <span className="lf-badge lf-badge-gold" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>
                   👑 VIP GOLD
                 </span>
@@ -374,15 +386,15 @@ export default function CustomerMobilePass() {
           </div>
 
           {/* Active Rewards Vouchers */}
-          {activeCustomer?.vouchers && activeCustomer.vouchers.length > 0 && (
+          {currentCustomer?.vouchers && currentCustomer.vouchers.length > 0 && (
             <div style={{ paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#D4AF37', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <RewardIcon size={14} />
-                <span>Active Unlocked Vouchers ({activeCustomer.vouchers.filter(v => v.status === 'unredeemed').length})</span>
+                <span>Active Unlocked Vouchers ({currentCustomer.vouchers.filter(v => v.status === 'unredeemed').length})</span>
               </span>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {activeCustomer.vouchers.map((v, i) => {
+                {currentCustomer.vouchers.map((v, i) => {
                   const isRedeemed = v.status === 'redeemed';
                   return (
                     <div
@@ -418,7 +430,7 @@ export default function CustomerMobilePass() {
           <div style={{ background: '#FFFFFF', padding: '14px', borderRadius: '18px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.15)' }}>
             <QrCode size={72} color="#000000" />
             <div style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#1E293B', marginTop: '4px', letterSpacing: '0.08em' }}>
-              {activeCustomer?.phone || '9876543210'}
+              {currentCustomer?.phone || (isGuestMode ? guestPhone : '9876543210')}
             </div>
             <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B', textTransform: 'uppercase' }}>
               SHOW TO CASHIER WHEN BILLING

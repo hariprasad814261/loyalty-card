@@ -42,52 +42,70 @@ export default function StandeeGenerator() {
     setHeadline(getInitialHeadline());
   }, [activeRestaurant?.id, activeRestaurant?.program?.rewardTitle, activeRestaurant?.program?.totalStamps]);
 
-  const detectedHost = (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
-    ? window.location.hostname
-    : (serverIp || '10.195.31.42');
-  const currentPort = (typeof window !== 'undefined' && window.location.port) ? window.location.port : '5173';
-
   const isHostedOnline = typeof window !== 'undefined' && 
     window.location.hostname && 
     window.location.hostname !== 'localhost' && 
     window.location.hostname !== '127.0.0.1' && 
     !window.location.hostname.match(/^\d+\.\d+\.\d+\.\d+$/);
 
-  const [wifiIp, setWifiIp] = useState(detectedHost);
+  // Helper to reject loopback addresses ('localhost', '127.0.0.1', '::1')
+  const isLoopback = (host) => {
+    if (!host) return true;
+    const clean = String(host).replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0].toLowerCase();
+    return clean === 'localhost' || clean === '127.0.0.1' || clean === '::1' || clean.startsWith('127.');
+  };
+
+  // Reject loopback values before initializing wifiIp
+  const resolveSafeWifiHost = () => {
+    if (serverIp && !isLoopback(serverIp)) return serverIp;
+    const rawHostname = (typeof window !== 'undefined' && window.location.hostname) ? window.location.hostname : '';
+    if (!isLoopback(rawHostname)) return rawHostname;
+    return '10.195.31.42';
+  };
+
+  // Do not default scanned URL to port 5173 in production.
+  // Only use port when on non-standard local development ports.
+  const rawPort = (typeof window !== 'undefined' && window.location.port) ? window.location.port : '';
+  const portSuffix = (rawPort && rawPort !== '80' && rawPort !== '443') 
+    ? `:${rawPort}` 
+    : (isHostedOnline ? '' : ':5173');
+
+  const [wifiIp, setWifiIp] = useState(resolveSafeWifiHost);
   const [urlMode, setUrlMode] = useState(isHostedOnline ? 'current' : 'wifi'); // 'current' | 'wifi' | 'custom'
   const [urlFormat, setUrlFormat] = useState('query'); // 'query' (?pass=...) | 'path' (/pass/...)
   const [customHost, setCustomHost] = useState(`https://loyalty.${activeRestaurant?.id || 'restaurant'}.com`);
 
-  // Direct check for live network IP on component mount
+  // Direct check for live network IP on component mount, rejecting loopbacks
   useEffect(() => {
     fetch('/api/loyalty/state')
       .then(r => r.json())
       .then(d => {
-        if (d?.serverIp && d.serverIp !== '127.0.0.1') {
-          setWifiIp(prev => (!prev || prev === '192.168.0.5' || prev === '192.168.31.36' || prev === 'localhost' || prev === '127.0.0.1') ? d.serverIp : prev);
+        if (d?.serverIp && !isLoopback(d.serverIp)) {
+          setWifiIp(prev => (isLoopback(prev) || !prev) ? d.serverIp : prev);
         }
       })
       .catch(() => {});
   }, []);
 
-  // Auto-sync wifiIp when serverIp is detected
+  // Auto-sync wifiIp when serverIp is detected, rejecting loopbacks
   useEffect(() => {
-    if (serverIp && serverIp !== '127.0.0.1') {
-      setWifiIp(prev => (!prev || prev === '192.168.0.5' || prev === '192.168.31.36' || prev === 'localhost' || prev === '127.0.0.1') ? serverIp : prev);
+    if (serverIp && !isLoopback(serverIp)) {
+      setWifiIp(prev => (isLoopback(prev) || !prev) ? serverIp : prev);
     }
   }, [serverIp]);
 
-  // Calculate final QR target URL based on mode
+  // Calculate final QR target URL based on mode without hardcoded port 5173 on online domains
   const getTargetBaseUrl = () => {
     if (urlMode === 'wifi') {
-      const activeHost = (wifiIp && wifiIp !== '192.168.0.5' && wifiIp !== '192.168.31.36') ? wifiIp : (serverIp || '10.195.31.42');
+      const activeHost = (!isLoopback(wifiIp)) ? wifiIp : resolveSafeWifiHost();
       const cleanIp = activeHost.replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0] || '10.195.31.42';
-      return `http://${cleanIp}:${currentPort}`;
+      return `http://${cleanIp}${portSuffix || ':5173'}`;
     }
     if (urlMode === 'custom') {
       return customHost.replace(/\/+$/, '');
     }
-    return typeof window !== 'undefined' ? window.location.origin : `http://${serverIp || '10.195.31.42'}:${currentPort}`;
+    // 'current' mode: use window.location.origin directly (no hardcoded :5173)
+    return typeof window !== 'undefined' ? window.location.origin : 'https://your-domain.vercel.app';
   };
 
   const passUrl = urlFormat === 'query'
@@ -368,7 +386,7 @@ export default function StandeeGenerator() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => window.open(passUrl, '_blank')}
+                    onClick={() => window.open(passUrl, '_blank', 'noopener,noreferrer')}
                     className="lf-btn lf-btn-secondary"
                     style={{ padding: '8px 12px' }}
                     title="Test Pass URL in new tab"
