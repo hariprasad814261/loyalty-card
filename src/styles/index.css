@@ -1,0 +1,718 @@
+/* ==========================================================================
+   LOYALTYFORGE LUXURY DESIGN SYSTEM
+   Award-Winning Bespoke Hospitality UI / UX
+   Color Philosophy: Deep Espresso, Warm Obsidian, Champagne Gold, Rich Copper & Ivory
+   (100% Zero-Dependency Pure CSS Architecture - No Blue / No Indigo / No AI Defaults)
+   ========================================================================== */
+
+:root {
+  /* Typography */
+  --font-display: 'Outfit', 'Syne', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Luxury Color Palette */
+  --bg-canvas: #0D0A08;
+  --bg-surface: #14100E;
+  --bg-surface-raised: #1C1714;
+  --bg-surface-overlay: #251F1C;
+  --bg-input: #17120F;
+
+  /* Metallic Champagne Gold & Warm Amber */
+  --gold-primary: #D4AF37;
+  --gold-light: #F3E5AB;
+  --gold-dark: #A4801C;
+  --gold-glow: rgba(212, 175, 55, 0.22);
+  --gold-gradient: linear-gradient(135deg, #ECC86A 0%, #D4AF37 50%, #A47D1C 100%);
+  --gold-border: rgba(212, 175, 55, 0.24);
+
+  /* Terracotta & Burnt Copper */
+  --copper-primary: #C85A32;
+  --copper-glow: rgba(200, 90, 50, 0.2);
+
+  /* Forest Emerald for Status & WhatsApp */
+  --emerald-primary: #10B981;
+  --emerald-dark: #059669;
+  --emerald-glow: rgba(16, 185, 129, 0.2);
+
+  /* Text & Hierarchy */
+  --text-ivory: #FDFBF7;
+  --text-secondary: #D4CDC3;
+  --text-muted: #8E8478;
+  --text-dim: #5C544B;
+
+  /* Borders & Glass */
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-medium: rgba(255, 255, 255, 0.12);
+  --border-gold-subtle: rgba(212, 175, 55, 0.18);
+  --border-gold-hover: rgba(212, 175, 55, 0.45);
+
+  /* Geometry */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 36px;
+  --radius-full: 9999px;
+
+  /* Luxury Shadows */
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 12px 28px -6px rgba(0, 0, 0, 0.65), 0 0 1px 1px var(--border-gold-subtle);
+  --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.8), 0 0 1px 1px var(--border-gold-subtle);
+  --shadow-gold: 0 8px 24px -4px rgba(212, 175, 55, 0.35);
+}
+
+/* Base Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background-color: var(--bg-canvas);
+  color: var(--text-ivory);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Background Ambient Texture */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse 60% 40% at 20% 10%, rgba(212, 175, 55, 0.05), transparent 70%),
+    radial-gradient(ellipse 50% 50% at 80% 85%, rgba(200, 90, 50, 0.04), transparent 70%),
+    radial-gradient(ellipse 80% 60% at 50% 50%, rgba(20, 16, 14, 0.9), var(--bg-canvas));
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Typography Hierarchy */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-ivory);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-canvas);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.2);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.4);
+}
+
+/* ==========================================================================
+   LAYOUT STRUCTURE
+   ========================================================================== */
+
+.lf-app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.lf-container {
+  max-width: 1380px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+@media (min-width: 768px) {
+  .lf-container {
+    padding: 32px 32px;
+  }
+}
+
+/* Header & Navigation Bar */
+.lf-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(18, 14, 12, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-gold-subtle);
+  padding: 12px 24px;
+}
+
+.lf-header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.lf-brand-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.lf-brand-emblem {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--gold-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1A1409;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.4);
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.lf-brand-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-ivory);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.lf-brand-subtitle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--gold-primary);
+}
+
+/* Navigation Segmented Pills */
+.lf-nav-bar {
+  display: flex;
+  align-items: center;
+  background: rgba(20, 16, 14, 0.95);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.lf-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lf-nav-btn:hover {
+  color: var(--text-ivory);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.lf-nav-btn.active {
+  color: #1A1409;
+  background: var(--gold-gradient);
+  box-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   CARDS & PANELS
+   ========================================================================== */
+
+.lf-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  transition: border-color 0.25s ease;
+}
+
+.lf-card:hover {
+  border-color: var(--border-gold-subtle);
+}
+
+.lf-card-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.lf-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lf-card-title-icon {
+  color: var(--gold-primary);
+}
+
+.lf-card-body {
+  padding: 24px;
+}
+
+/* Studio Layout (Split Screen) */
+.lf-studio-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .lf-studio-grid {
+    grid-template-columns: 1.15fr 0.85fr;
+  }
+}
+
+.lf-sticky-workstation {
+  position: sticky;
+  top: 96px;
+}
+
+/* Grid Utilities */
+.lf-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 640px) {
+  .lf-grid-2 { grid-template-columns: repeat(2, 1fr); }
+}
+
+.lf-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+@media (min-width: 640px) {
+  .lf-grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 860px) {
+  .lf-grid-3 { grid-template-columns: repeat(3, 1fr); }
+}
+
+.lf-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+@media (min-width: 1024px) {
+  .lf-grid-4 { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ==========================================================================
+   INPUTS & FORM CONTROLS
+   ========================================================================== */
+
+.lf-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lf-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+}
+
+.lf-label-hint {
+  font-size: 11px;
+  font-weight: normal;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.lf-input, .lf-select {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  color: var(--text-ivory);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.lf-input:focus, .lf-select:focus {
+  border-color: var(--gold-primary);
+  box-shadow: 0 0 0 3px var(--gold-glow);
+  background: #1E1815;
+}
+
+.lf-input::placeholder {
+  color: var(--text-dim);
+}
+
+.lf-input-mono {
+  font-family: var(--font-mono);
+}
+
+/* Preset Theme Tiles */
+.lf-preset-card {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-raised);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.lf-preset-card:hover {
+  border-color: var(--border-gold-subtle);
+  transform: translateY(-2px);
+  background: var(--bg-surface-overlay);
+}
+
+.lf-preset-card.active {
+  border-color: var(--gold-primary);
+  background: rgba(212, 175, 55, 0.08);
+  box-shadow: 0 0 0 1px var(--gold-primary);
+}
+
+.lf-preset-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-xs);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.lf-preset-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-ivory);
+  line-height: 1.2;
+}
+
+.lf-preset-desc {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+/* Stamp Icon Selection */
+.lf-icon-pill {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-raised);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.lf-icon-pill:hover {
+  border-color: var(--border-medium);
+  color: var(--text-ivory);
+}
+
+.lf-icon-pill.active {
+  border-color: var(--gold-primary);
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--gold-light);
+}
+
+/* ==========================================================================
+   BUTTONS & BADGES
+   ========================================================================== */
+
+.lf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.lf-btn:active {
+  transform: scale(0.98);
+}
+
+.lf-btn-gold {
+  background: var(--gold-gradient);
+  color: #171108;
+  box-shadow: var(--shadow-gold);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.lf-btn-gold:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 10px 28px -4px rgba(212, 175, 55, 0.5);
+  transform: translateY(-1px);
+}
+
+.lf-btn-emerald {
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: #FFFFFF;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+.lf-btn-emerald:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+  transform: translateY(-1px);
+}
+
+.lf-btn-secondary {
+  background: var(--bg-surface-overlay);
+  border: 1px solid var(--border-medium);
+  color: var(--text-ivory);
+}
+
+.lf-btn-secondary:hover {
+  border-color: var(--border-gold-subtle);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lf-btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  padding: 8px 12px;
+}
+
+.lf-btn-ghost:hover {
+  color: var(--text-ivory);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Badges */
+.lf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.lf-badge-gold {
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--gold-light);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.lf-badge-emerald {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.lf-badge-copper {
+  background: rgba(200, 90, 50, 0.12);
+  color: #F87171;
+  border: 1px solid rgba(200, 90, 50, 0.3);
+}
+
+/* ==========================================================================
+   3D WALLET PASS SIMULATOR
+   ========================================================================== */
+
+.lf-phone-mockup {
+  width: 340px;
+  min-height: 600px;
+  border-radius: 46px;
+  background: #000000;
+  border: 8px solid #201A17;
+  box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(212, 175, 55, 0.15);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+}
+
+.lf-phone-notch {
+  width: 100px;
+  height: 22px;
+  background: #140F0D;
+  border-radius: 0 0 14px 14px;
+  margin: 0 auto 12px;
+  position: relative;
+  z-index: 20;
+}
+
+.lf-flip-container {
+  perspective: 1200px;
+  width: 320px;
+  height: 480px;
+  margin: 0 auto;
+}
+
+.lf-flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.lf-flip-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.lf-flip-front, .lf-flip-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+}
+
+.lf-flip-back {
+  transform: rotateY(180deg);
+}
+
+/* ==========================================================================
+   ACRYLIC STANDEE DISPLAY MOCKUP
+   ========================================================================== */
+
+.lf-standee-board {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.9), 0 0 0 10px rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #FFFFFF;
+  color: #1E293B;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+}
+
+.lf-standee-base {
+  width: 85%;
+  height: 16px;
+  background: linear-gradient(180deg, #3A302A, #1C1714);
+  border-radius: 0 0 8px 8px;
+  margin: -4px auto 0;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.7);
+}
+
+/* ==========================================================================
+   TABLES & CRM
+   ========================================================================== */
+
+.lf-table-container {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-raised);
+}
+
+.lf-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.lf-table th {
+  padding: 14px 18px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.lf-table td {
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+}
+
+.lf-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* ==========================================================================
+   KEYFRAME ANIMATIONS
+   ========================================================================== */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popStamp {
+  0% { transform: scale(0.3) rotate(-15deg); opacity: 0; }
+  60% { transform: scale(1.2) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-stamp-burst {
+  animation: popStamp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}

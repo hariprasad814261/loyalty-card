@@ -1,0 +1,141 @@
+[
+  {
+    "id": "cust_001",
+    "restaurantId": "rest_001",
+    "phone": "9876543210",
+    "name": "Karthik Raja",
+    "visits": 4,
+    "totalSpend": 1850,
+    "loyaltyPoints": 185,
+    "lastVisit": "2026-08-28T14:30:00.000Z",
+    "createdAt": "2026-07-10T10:00:00.000Z",
+    "vouchers": []
+  },
+  {
+    "id": "cust_002",
+    "restaurantId": "rest_001",
+    "phone": "9840123456",
+    "name": "Priya Swaminathan",
+    "visits": 5,
+    "totalSpend": 2600,
+    "loyaltyPoints": 260,
+    "lastVisit": "2026-08-29T11:15:00.000Z",
+    "createdAt": "2026-06-15T09:30:00.000Z",
+    "vouchers": [
+      {
+        "code": "BEE-100-7729",
+        "title": "₹100 Instant Discount",
+        "amount": 100,
+        "status": "unredeemed",
+        "earnedAt": "2026-08-29T11:15:00.000Z",
+        "expiresAt": "2026-09-30T23:59:59.000Z"
+      }
+    ]
+  },
+  {
+    "id": "cust_003",
+    "restaurantId": "rest_001",
+    "phone": "9940567890",
+    "name": "Arun Kumar",
+    "visits": 12,
+    "totalSpend": 5400,
+    "loyaltyPoints": 540,
+    "lastVisit": "2026-08-27T19:45:00.000Z",
+    "createdAt": "2026-05-01T12:00:00.000Z",
+    "vouchers": [
+      {
+        "code": "BEE-VIP-5000",
+        "title": "VIP Exclusive Chef's Dessert",
+        "amount": 250,
+        "status": "unredeemed",
+        "earnedAt": "2026-08-27T19:45:00.000Z",
+        "expiresAt": "2026-10-31T23:59:59.000Z"
+      }
+    ]
+  },
+  {
+    "id": "cust_004",
+    "restaurantId": "rest_001",
+    "phone": "9176098765",
+    "name": "Divya Meenakshi",
+    "visits": 2,
+    "totalSpend": 780,
+    "loyaltyPoints": 78,
+    "lastVisit": "2026-07-15T16:20:00.000Z",
+    "createdAt": "2026-07-01T14:10:00.000Z",
+    "vouchers": []
+  },
+  {
+    "id": "cust_005",
+    "restaurantId": "rest_002",
+    "phone": "9884011223",
+    "name": "Suresh Raman",
+    "visits": 9,
+    "totalSpend": 4200,
+    "loyaltyPoints": 420,
+    "lastVisit": "2026-08-25T20:10:00.000Z",
+    "createdAt": "2026-04-12T18:00:00.000Z",
+    "vouchers": []
+  },
+  {
+    "id": "cust_1788082938850",
+    "restaurantId": "rest_003",
+    "phone": "9342705016",
+    "name": "Guest Customer",
+    "visits": 1,
+    "totalSpend": 0,
+    "loyaltyPoints": 10,
+    "lastVisit": "2026-08-30T09:43:52.296Z",
+    "createdAt": "2026-08-30T09:42:18.850Z",
+    "vouchers": [],
+    "isVip": false
+  },
+  {
+    "id": "cust_1788083214585",
+    "restaurantId": "rest_001",
+    "phone": "9342705016",
+    "name": "Guest Customer",
+    "visits": 5,
+    "totalSpend": 0,
+    "loyaltyPoints": 50,
+    "lastVisit": "2026-08-31T11:20:10.183Z",
+    "createdAt": "2026-08-30T09:46:54.585Z",
+    "vouchers": [
+      {
+        "code": "BEE-100-EH7C",
+        "title": "₹100 Instant Discount on Bill",
+        "amount": 100,
+        "status": "unredeemed",
+        "earnedAt": "2026-08-31T11:20:10.183Z",
+        "milestoneVisit": 5
+      }
+    ],
+    "isVip": false
+  },
+  {
+    "id": "cust_1788083254891",
+    "restaurantId": "rest_002",
+    "phone": "9342705016",
+    "name": "Guest Customer",
+    "visits": 1,
+    "totalSpend": 0,
+    "loyaltyPoints": 10,
+    "lastVisit": "2026-08-30T09:47:34.907Z",
+    "createdAt": "2026-08-30T09:47:34.891Z",
+    "vouchers": [],
+    "isVip": false
+  },
+  {
+    "id": "cust_1788083803690",
+    "restaurantId": "rest_1788083436416",
+    "phone": "9342705016",
+    "name": "Guest Customer",
+    "visits": 6,
+    "totalSpend": 400,
+    "loyaltyPoints": 440,
+    "lastVisit": "2026-08-31T11:18:02.261Z",
+    "createdAt": "2026-08-30T09:56:43.690Z",
+    "vouchers": [],
+    "isVip": false
+  }
+]
