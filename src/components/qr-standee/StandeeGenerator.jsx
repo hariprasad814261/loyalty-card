@@ -44,33 +44,49 @@ export default function StandeeGenerator() {
 
   const detectedHost = (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
     ? window.location.hostname
-    : (serverIp || '192.168.0.5');
+    : (serverIp || '10.195.31.42');
   const currentPort = (typeof window !== 'undefined' && window.location.port) ? window.location.port : '5173';
 
   const [wifiIp, setWifiIp] = useState(detectedHost);
   const [urlMode, setUrlMode] = useState('wifi'); // 'wifi' | 'custom' | 'current'
+  const [urlFormat, setUrlFormat] = useState('query'); // 'query' (?pass=...) | 'path' (/pass/...)
   const [customHost, setCustomHost] = useState(`https://loyalty.${activeRestaurant?.id || 'restaurant'}.com`);
+
+  // Direct check for live network IP on component mount
+  useEffect(() => {
+    fetch('/api/loyalty/state')
+      .then(r => r.json())
+      .then(d => {
+        if (d?.serverIp && d.serverIp !== '127.0.0.1') {
+          setWifiIp(prev => (!prev || prev === '192.168.0.5' || prev === '192.168.31.36' || prev === 'localhost' || prev === '127.0.0.1') ? d.serverIp : prev);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Auto-sync wifiIp when serverIp is detected
   useEffect(() => {
     if (serverIp && serverIp !== '127.0.0.1') {
-      setWifiIp(prev => (prev === '192.168.31.36' || prev === 'localhost' || prev === '127.0.0.1' || !prev) ? serverIp : prev);
+      setWifiIp(prev => (!prev || prev === '192.168.0.5' || prev === '192.168.31.36' || prev === 'localhost' || prev === '127.0.0.1') ? serverIp : prev);
     }
   }, [serverIp]);
 
   // Calculate final QR target URL based on mode
   const getTargetBaseUrl = () => {
     if (urlMode === 'wifi') {
-      const cleanIp = wifiIp.replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0] || serverIp || '192.168.0.5';
+      const activeHost = (wifiIp && wifiIp !== '192.168.0.5' && wifiIp !== '192.168.31.36') ? wifiIp : (serverIp || '10.195.31.42');
+      const cleanIp = activeHost.replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0] || '10.195.31.42';
       return `http://${cleanIp}:${currentPort}`;
     }
     if (urlMode === 'custom') {
       return customHost.replace(/\/+$/, '');
     }
-    return typeof window !== 'undefined' ? window.location.origin : `http://${serverIp || '192.168.0.5'}:${currentPort}`;
+    return typeof window !== 'undefined' ? window.location.origin : `http://${serverIp || '10.195.31.42'}:${currentPort}`;
   };
 
-  const passUrl = `${getTargetBaseUrl()}/pass/${activeRestaurant.id}`;
+  const passUrl = urlFormat === 'query'
+    ? `${getTargetBaseUrl()}/?pass=${activeRestaurant?.id || 'rest_001'}`
+    : `${getTargetBaseUrl()}/pass/${activeRestaurant?.id || 'rest_001'}`;
 
   useEffect(() => {
     async function loadQr() {
@@ -256,19 +272,32 @@ export default function StandeeGenerator() {
               {/* Wi-Fi IP Input */}
               {urlMode === 'wifi' && (
                 <div className="lf-form-group" style={{ marginTop: '4px' }}>
-                  <label className="lf-label" style={{ fontSize: '10.5px' }}>
-                    Laptop Wi-Fi IPv4 Address (Port {currentPort})
-                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <label className="lf-label" style={{ fontSize: '10.5px', margin: 0 }}>
+                      Laptop Wi-Fi IPv4 Address (Port {currentPort})
+                    </label>
+                    {serverIp && serverIp !== '127.0.0.1' && (
+                      <button
+                        type="button"
+                        onClick={() => setWifiIp(serverIp)}
+                        className="lf-btn-ghost"
+                        style={{ fontSize: '10px', color: '#D4AF37', padding: '2px 6px', textDecoration: 'underline', cursor: 'pointer' }}
+                      >
+                        Use Auto-Detected ({serverIp})
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="text"
                     className="lf-input lf-input-mono"
                     value={wifiIp}
                     onChange={(e) => setWifiIp(e.target.value)}
-                    placeholder="e.g. 192.168.31.36"
+                    placeholder="e.g. 10.195.31.42"
                   />
-                  <span style={{ fontSize: '10px', color: '#8E8478', marginTop: '2px' }}>
-                    Connect phone to same Wi-Fi network to scan and open.
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '10.5px', color: '#8E8478' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }}></span>
+                    <span>Make sure your phone is connected to the same Wi-Fi or Hotspot.</span>
+                  </div>
                 </div>
               )}
 
@@ -285,6 +314,31 @@ export default function StandeeGenerator() {
                   />
                 </div>
               )}
+
+              {/* URL Format Selector */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <span style={{ fontSize: '11px', color: '#D4CDC3' }}>Mobile Route Style:</span>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setUrlFormat('query')}
+                    className={`lf-icon-pill ${urlFormat === 'query' ? 'active' : ''}`}
+                    style={{ fontSize: '10px', padding: '3px 8px' }}
+                    title="Universal parameter - best for phone camera scanners"
+                  >
+                    Universal (?pass=...)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUrlFormat('path')}
+                    className={`lf-icon-pill ${urlFormat === 'path' ? 'active' : ''}`}
+                    style={{ fontSize: '10px', padding: '3px 8px' }}
+                    title="Clean slug path"
+                  >
+                    Path (/pass/...)
+                  </button>
+                </div>
+              </div>
 
               {/* Generated Full Pass URL */}
               <div>
@@ -305,6 +359,15 @@ export default function StandeeGenerator() {
                     title="Copy URL"
                   >
                     {copiedLink ? <Check size={14} style={{ color: '#10B981' }} /> : <Copy size={14} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.open(passUrl, '_blank')}
+                    className="lf-btn lf-btn-secondary"
+                    style={{ padding: '8px 12px' }}
+                    title="Test Pass URL in new tab"
+                  >
+                    <ExternalLink size={14} style={{ color: '#D4AF37' }} />
                   </button>
                 </div>
               </div>

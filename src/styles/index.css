@@ -716,3 +716,76 @@ h1, h2, h3, h4, h5, h6 {
 .animate-stamp-burst {
   animation: popStamp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
+
+/* ==========================================================================
+   MOBILE & TOUCH RESPONSIVENESS
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .lf-container {
+    padding: 16px 12px;
+  }
+
+  .lf-header {
+    padding: 10px 14px;
+  }
+
+  .lf-header-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .lf-brand-block {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .lf-nav-bar {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 3px;
+  }
+
+  .lf-nav-btn {
+    padding: 7px 12px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .lf-studio-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .lf-sticky-workstation {
+    position: static;
+  }
+
+  .lf-phone-mockup {
+    width: 100%;
+    max-width: 340px;
+    min-height: auto;
+  }
+
+  .lf-grid-2, .lf-grid-3, .lf-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .lf-container {
+    padding: 12px 8px;
+  }
+
+  .lf-card {
+    border-radius: var(--radius-md);
+  }
+
+  .lf-flip-container {
+    width: 100%;
+    max-width: 320px;
+  }
+}
+

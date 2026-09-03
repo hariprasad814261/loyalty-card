@@ -80,7 +80,7 @@ export default function CustomerMobilePass() {
       <div style={{ maxWidth: '440px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }} className="animate-fade-in">
         <div className="lf-card" style={{ padding: '28px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
           
-          {activeRestaurant.logoUrl ? (
+          {activeRestaurant?.logoUrl ? (
             <img
               src={activeRestaurant.logoUrl}
               alt="logo"
@@ -88,15 +88,15 @@ export default function CustomerMobilePass() {
             />
           ) : (
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--gold-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1A1409', fontWeight: 900, fontSize: '20px' }}>
-              {activeRestaurant.name?.slice(0, 2).toUpperCase()}
+              {(activeRestaurant?.name || 'VIP').slice(0, 2).toUpperCase()}
             </div>
           )}
 
           <div>
             <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#FDFBF7', marginBottom: '4px' }}>
-              {activeRestaurant.name}
+              {activeRestaurant?.name || 'VIP Loyalty'}
             </h2>
-            <p style={{ fontSize: '12px', color: '#8E8478' }}>{activeRestaurant.tagline}</p>
+            <p style={{ fontSize: '12px', color: '#8E8478' }}>{activeRestaurant?.tagline || 'Digital Loyalty Pass'}</p>
           </div>
 
           <div style={{ padding: '12px 16px', borderRadius: '14px', background: 'rgba(212, 175, 55, 0.1)', border: '1px solid rgba(212, 175, 55, 0.3)', width: '100%' }}>
@@ -110,7 +110,22 @@ export default function CustomerMobilePass() {
 
           <form onSubmit={handlePhoneSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '6px' }}>
             <div className="lf-form-group" style={{ textAlign: 'left' }}>
-              <label className="lf-label" style={{ fontSize: '11px' }}>Enter 10-Digit Mobile Number</label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <label className="lf-label" style={{ fontSize: '11px', margin: 0 }}>Enter 10-Digit Mobile Number</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInputPhone('9876543210');
+                    localStorage.setItem('guest_loyalty_phone', '9876543210');
+                    registerOrGetCustomer('9876543210');
+                    setActiveCustomerPhone('9876543210');
+                  }}
+                  className="lf-btn-ghost"
+                  style={{ fontSize: '10px', color: '#D4AF37', padding: '0 4px', textDecoration: 'underline', cursor: 'pointer' }}
+                >
+                  ⚡ Demo: 9876543210
+                </button>
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#D4CDC3', fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
                   +91

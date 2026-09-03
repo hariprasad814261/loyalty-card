@@ -52,10 +52,8 @@ export function LoyaltyProvider({ children }) {
   const [isGuestMode, setIsGuestMode] = useState(initialRoute.isGuest);
 
   const [activeRestaurantId, setActiveRestaurantId] = useState(() => {
-    if (initialRoute.restId && restaurants.some(r => r.id === initialRoute.restId)) {
-      return initialRoute.restId;
-    }
-    return restaurants[0]?.id || 'rest_001';
+    // If the visitor scanned a QR code with a specific restaurant ID, prioritize it immediately
+    return initialRoute.restId || restaurants[0]?.id || 'rest_001';
   });
 
   // Load customers with localStorage fallback
@@ -90,6 +88,12 @@ export function LoyaltyProvider({ children }) {
         const data = await res.json();
         if (data?.serverIp && data.serverIp !== '127.0.0.1') {
           setServerIp(data.serverIp);
+        }
+        if (Array.isArray(data.restaurants) && data.restaurants.length > 0) {
+          setRestaurants(data.restaurants);
+          if (initialRoute.restId && data.restaurants.some(r => r.id === initialRoute.restId)) {
+            setActiveRestaurantId(initialRoute.restId);
+          }
         }
         if (Array.isArray(data.customers)) {
           setCustomers(prev => {

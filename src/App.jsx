@@ -300,7 +300,7 @@ function GuestCustomerPassLayout() {
         backdropFilter: 'blur(16px)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {activeRestaurant.logoUrl ? (
+          {activeRestaurant?.logoUrl ? (
             <img
               src={activeRestaurant.logoUrl}
               alt="logo"
@@ -308,12 +308,12 @@ function GuestCustomerPassLayout() {
             />
           ) : (
             <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--gold-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1A1409', fontWeight: 900, fontSize: '14px' }}>
-              {activeRestaurant.name?.slice(0, 2).toUpperCase()}
+              {(activeRestaurant?.name || 'VIP').slice(0, 2).toUpperCase()}
             </div>
           )}
           <div>
             <div style={{ fontSize: '15px', fontWeight: 800, color: '#FDFBF7', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              {activeRestaurant.name}
+              {activeRestaurant?.name || 'Loyalty Club'}
             </div>
             <div style={{ fontSize: '10.5px', color: '#D4AF37', fontWeight: 600 }}>
               Digital VIP Loyalty Pass
@@ -345,7 +345,7 @@ function GuestCustomerPassLayout() {
         fontSize: '11px',
         fontFamily: 'var(--font-mono)'
       }}>
-        Powered by {activeRestaurant.name} • No App Needed
+        Powered by {activeRestaurant?.name || 'Restaurant'} • No App Needed
       </footer>
     </div>
   );
