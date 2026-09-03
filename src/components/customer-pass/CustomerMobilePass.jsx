@@ -17,7 +17,8 @@ import {
   ShieldCheck,
   Smartphone,
   Crown,
-  Lock
+  Lock,
+  Star
 } from 'lucide-react';
 import { MerchantLoginModal } from '../auth/MerchantLoginModal';
 
