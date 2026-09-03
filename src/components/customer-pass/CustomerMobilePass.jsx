@@ -104,126 +104,169 @@ export default function CustomerMobilePass() {
   const accentColor = theme.accentColor || '#D4AF37';
   const stampActiveColor = theme.stampActiveColor || '#E5C07B';
 
-  // If Guest Mode and phone is not entered yet, show the guest welcome check-in screen
+  const [entryRole, setEntryRole] = useState('customer'); // 'customer' | 'shopkeeper'
+
+  // If Guest Mode and phone is not entered yet, show the dual-role welcome screen
   if (isGuestMode && (!guestPhone || guestPhone.length < 10)) {
     return (
-      <div style={{ maxWidth: '440px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }} className="animate-fade-in">
-        <div className="lf-card" style={{ padding: '28px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-          
-          {activeRestaurant?.logoUrl ? (
-            <img
-              src={activeRestaurant.logoUrl}
-              alt="logo"
-              style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(212, 175, 55, 0.4)', boxShadow: '0 8px 20px rgba(0,0,0,0.6)' }}
-            />
-          ) : (
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--gold-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1A1409', fontWeight: 900, fontSize: '20px' }}>
-              {(activeRestaurant?.name || 'VIP').slice(0, 2).toUpperCase()}
+      <div style={{ maxWidth: '440px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }} className="animate-fade-in">
+        
+        {/* Dual-Role Selector Tabs: Customer vs Shopkeeper */}
+        <div 
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '8px',
+            background: 'rgba(0,0,0,0.5)',
+            padding: '6px',
+            borderRadius: '16px',
+            border: '1px solid rgba(212, 175, 55, 0.25)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.4)'
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setEntryRole('customer')}
+            className={`lf-btn ${entryRole === 'customer' ? 'lf-btn-gold' : 'lf-btn-ghost'}`}
+            style={{
+              padding: '12px 10px',
+              fontSize: '13px',
+              fontWeight: 800,
+              justifyContent: 'center',
+              borderRadius: '12px',
+              flexDirection: 'column',
+              gap: '4px',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Smartphone size={16} />
+              <span>I'm a Customer</span>
             </div>
-          )}
-
-          <div>
-            <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#FDFBF7', marginBottom: '4px' }}>
-              {activeRestaurant?.name || 'VIP Loyalty'}
-            </h2>
-            <p style={{ fontSize: '12px', color: '#8E8478' }}>{activeRestaurant?.tagline || 'Digital Loyalty Pass'}</p>
-          </div>
-
-          <div style={{ padding: '12px 16px', borderRadius: '14px', background: 'rgba(212, 175, 55, 0.1)', border: '1px solid rgba(212, 175, 55, 0.3)', width: '100%' }}>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#F3E5AB', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '2px' }}>
-              VIP Loyalty Club
+            <span style={{ fontSize: '10px', opacity: 0.8, fontWeight: 500 }}>
+              Collect Stamps & Rewards
             </span>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#FDFBF7' }}>
-              {program.rewardTitle || 'Earn ₹100 Instant Discount on Your 5th Visit!'}
-            </span>
-          </div>
+          </button>
 
-          <form onSubmit={handlePhoneSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '6px' }}>
-            <div className="lf-form-group" style={{ textAlign: 'left' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <label className="lf-label" style={{ fontSize: '11px', margin: 0 }}>Enter 10-Digit Mobile Number</label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInputPhone('9876543210');
-                    localStorage.setItem('guest_loyalty_phone', '9876543210');
-                    registerOrGetCustomer('9876543210');
-                    setActiveCustomerPhone('9876543210');
-                  }}
-                  className="lf-btn-ghost"
-                  style={{ fontSize: '10px', color: '#D4AF37', padding: '0 4px', textDecoration: 'underline', cursor: 'pointer' }}
-                >
-                  ⚡ Demo: 9876543210
-                </button>
+          <button
+            type="button"
+            onClick={() => setEntryRole('shopkeeper')}
+            className={`lf-btn ${entryRole === 'shopkeeper' ? 'lf-btn-gold' : 'lf-btn-ghost'}`}
+            style={{
+              padding: '12px 10px',
+              fontSize: '13px',
+              fontWeight: 800,
+              justifyContent: 'center',
+              borderRadius: '12px',
+              flexDirection: 'column',
+              gap: '4px',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Lock size={16} />
+              <span>I'm a Shopkeeper</span>
+            </div>
+            <span style={{ fontSize: '10px', opacity: 0.8, fontWeight: 500 }}>
+              Cashier POS & Register
+            </span>
+          </button>
+        </div>
+
+        {/* ROLE 1: CUSTOMER PASS ENTRY */}
+        {entryRole === 'customer' && (
+          <div className="lf-card animate-fade-in" style={{ padding: '28px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+            {activeRestaurant?.logoUrl ? (
+              <img
+                src={activeRestaurant.logoUrl}
+                alt="logo"
+                style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(212, 175, 55, 0.4)', boxShadow: '0 8px 20px rgba(0,0,0,0.6)' }}
+              />
+            ) : (
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--gold-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1A1409', fontWeight: 900, fontSize: '20px' }}>
+                {(activeRestaurant?.name || 'VIP').slice(0, 2).toUpperCase()}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#D4CDC3', fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                  +91
-                </span>
-                <input
-                  type="tel"
-                  required
-                  maxLength="10"
-                  autoFocus
-                  value={inputPhone}
-                  onChange={(e) => setInputPhone(e.target.value.replace(/\D/g, ''))}
-                  className="lf-input lf-input-mono"
-                  style={{ flex: 1, padding: '10px 14px', fontSize: '15px', letterSpacing: '0.1em' }}
-                  placeholder="9876543210"
-                />
-              </div>
+            )}
+
+            <div>
+              <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#FDFBF7', marginBottom: '4px' }}>
+                {activeRestaurant?.name || 'VIP Loyalty'}
+              </h2>
+              <p style={{ fontSize: '12px', color: '#8E8478' }}>{activeRestaurant?.tagline || 'Digital Loyalty Pass'}</p>
             </div>
 
-            <button
-              type="submit"
-              className="lf-btn lf-btn-gold"
-              style={{ width: '100%', padding: '12px', fontSize: '14px', justifyContent: 'center', marginTop: '4px' }}
-            >
-              <Sparkles size={16} />
-              <span>Check In & Open Loyalty Pass</span>
-            </button>
-          </form>
+            <div style={{ padding: '12px 16px', borderRadius: '14px', background: 'rgba(212, 175, 55, 0.1)', border: '1px solid rgba(212, 175, 55, 0.3)', width: '100%' }}>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: '#F3E5AB', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '2px' }}>
+                VIP Loyalty Club
+              </span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#FDFBF7' }}>
+                {program.rewardTitle || 'Earn ₹100 Instant Discount on Your 5th Visit!'}
+              </span>
+            </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+            <form onSubmit={handlePhoneSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '6px' }}>
+              <div className="lf-form-group" style={{ textAlign: 'left' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <label className="lf-label" style={{ fontSize: '11px', margin: 0 }}>Enter 10-Digit Mobile Number</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInputPhone('9876543210');
+                      localStorage.setItem('guest_loyalty_phone', '9876543210');
+                      registerOrGetCustomer('9876543210');
+                      setActiveCustomerPhone('9876543210');
+                    }}
+                    className="lf-btn-ghost"
+                    style={{ fontSize: '10px', color: '#D4AF37', padding: '0 4px', textDecoration: 'underline', cursor: 'pointer' }}
+                  >
+                    ⚡ Demo: 9876543210
+                  </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#D4CDC3', fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    required
+                    maxLength="10"
+                    autoFocus
+                    value={inputPhone}
+                    onChange={(e) => setInputPhone(e.target.value.replace(/\D/g, ''))}
+                    className="lf-input lf-input-mono"
+                    style={{ flex: 1, padding: '10px 14px', fontSize: '15px', letterSpacing: '0.1em' }}
+                    placeholder="9876543210"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="lf-btn lf-btn-gold"
+                style={{ width: '100%', padding: '12px', fontSize: '14px', justifyContent: 'center', marginTop: '4px' }}
+              >
+                <Sparkles size={16} />
+                <span>Check In & Open Loyalty Pass</span>
+              </button>
+            </form>
+
             <span style={{ fontSize: '10.5px', color: '#6E655B' }}>
               🔒 Instant check-in • No password or app download required
             </span>
-
-            <button
-              type="button"
-              onClick={() => setShowMerchantAuthModal(true)}
-              className="lf-btn-ghost"
-              style={{
-                fontSize: '11px',
-                color: '#8E8478',
-                padding: '4px 8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                cursor: 'pointer'
-              }}
-            >
-              <Lock size={12} style={{ color: '#D4AF37' }} />
-              <span>Staff & Cashier Terminal Login</span>
-            </button>
           </div>
+        )}
 
-          {/* Owner Detected / Staff PIN Unlock Modal */}
-          {showMerchantAuthModal && (
+        {/* ROLE 2: SHOPKEEPER / OWNER ENTRY (LOGIN + NEW REGISTRATION WITH PIN GENERATOR) */}
+        {entryRole === 'shopkeeper' && (
+          <div className="animate-fade-in">
             <MerchantLoginModal
               prefilledPhone={inputPhone}
               prefilledRestaurant={activeRestaurant}
-              onClose={() => setShowMerchantAuthModal(false)}
-              onContinueAsGuest={() => {
-                setShowMerchantAuthModal(false);
-                const clean = inputPhone.replace(/\D/g, '') || '9876543210';
-                localStorage.setItem('guest_loyalty_phone', clean);
-                registerOrGetCustomer(clean);
-                setActiveCustomerPhone(clean);
-              }}
+              onClose={() => setEntryRole('customer')}
+              onContinueAsGuest={() => setEntryRole('customer')}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   }
