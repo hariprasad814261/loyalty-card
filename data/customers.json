@@ -130,12 +130,21 @@
     "restaurantId": "rest_burmix",
     "phone": "9342705016",
     "name": "Ramesh Kumar (Owner Pass)",
-    "visits": 4,
+    "visits": 5,
     "totalSpend": 1200,
-    "loyaltyPoints": 440,
-    "lastVisit": "2026-08-31T11:18:02.261Z",
+    "loyaltyPoints": 450,
+    "lastVisit": "2026-09-03T14:52:12.850Z",
     "createdAt": "2026-08-30T09:56:43.690Z",
-    "vouchers": [],
+    "vouchers": [
+      {
+        "code": "BEE-100-R5N2",
+        "title": "₹100 Instant Discount on Atho Combo",
+        "amount": 100,
+        "status": "unredeemed",
+        "earnedAt": "2026-09-03T14:52:12.850Z",
+        "milestoneVisit": 5
+      }
+    ],
     "isVip": false
   },
   {

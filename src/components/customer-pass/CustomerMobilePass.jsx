@@ -79,15 +79,8 @@ export default function CustomerMobilePass() {
 
   const handlePhoneSubmit = (e) => {
     e?.preventDefault();
-    const clean = inputPhone.replace(/\D/g, '');
-    if (clean.length >= 10) {
-      // Smart Role Detection: If this mobile number belongs to the store owner/staff
-      const ownerCheck = checkIsOwnerPhone(activeRestaurant?.id, clean);
-      if (ownerCheck.isOwner) {
-        setShowMerchantAuthModal(true);
-        return;
-      }
-
+    const clean = normalizePhone(inputPhone);
+    if (clean.length === 10) {
       localStorage.setItem('guest_loyalty_phone', clean);
       registerOrGetCustomer(clean);
       setActiveCustomerPhone(clean);
