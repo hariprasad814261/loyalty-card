@@ -47,8 +47,14 @@ export default function StandeeGenerator() {
     : (serverIp || '10.195.31.42');
   const currentPort = (typeof window !== 'undefined' && window.location.port) ? window.location.port : '5173';
 
+  const isHostedOnline = typeof window !== 'undefined' && 
+    window.location.hostname && 
+    window.location.hostname !== 'localhost' && 
+    window.location.hostname !== '127.0.0.1' && 
+    !window.location.hostname.match(/^\d+\.\d+\.\d+\.\d+$/);
+
   const [wifiIp, setWifiIp] = useState(detectedHost);
-  const [urlMode, setUrlMode] = useState('wifi'); // 'wifi' | 'custom' | 'current'
+  const [urlMode, setUrlMode] = useState(isHostedOnline ? 'current' : 'wifi'); // 'current' | 'wifi' | 'custom'
   const [urlFormat, setUrlFormat] = useState('query'); // 'query' (?pass=...) | 'path' (/pass/...)
   const [customHost, setCustomHost] = useState(`https://loyalty.${activeRestaurant?.id || 'restaurant'}.com`);
 

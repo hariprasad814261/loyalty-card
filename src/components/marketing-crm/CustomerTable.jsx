@@ -22,10 +22,13 @@ export default function CustomerTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeModalCustomer, setActiveModalCustomer] = useState(null);
 
-  const totalStamps = activeRestaurant.program?.totalStamps || 5;
+  const totalStamps = activeRestaurant?.program?.totalStamps || 5;
 
-  // Filter Logic
-  const filteredCustomers = customers.filter((c) => {
+  // Strict Tenant Scoping: Ensure customers only belong to the active restaurant
+  const restaurantCustomers = customers.filter(c => !c.restaurantId || c.restaurantId === activeRestaurant?.id);
+
+  // Search & Filter Logic
+  const filteredCustomers = restaurantCustomers.filter((c) => {
     // Search matching
     const matchesSearch = 
       c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -37,7 +40,7 @@ export default function CustomerTable() {
     const isOneAway = stampsInCycle === totalStamps - 1;
 
     if (filterTab === 'one_away') return isOneAway;
-    if (filterTab === 'vip') return c.isVip || (c.totalSpend || 0) >= (activeRestaurant.program?.vipSpendThreshold || 3000);
+    if (filterTab === 'vip') return c.isVip || (c.totalSpend || 0) >= (activeRestaurant?.program?.vipSpendThreshold || 3000);
     if (filterTab === 'inactive') {
       if (!c.lastVisit) return false;
       const daysSince = (new Date() - new Date(c.lastVisit)) / (1000 * 60 * 60 * 24);

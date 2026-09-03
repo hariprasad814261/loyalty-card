@@ -32,7 +32,7 @@ import {
 
 export default function CardConfigForm() {
   const { activeRestaurant, updateActiveRestaurant } = useLoyalty();
-  const { theme = {}, program = {}, links = {} } = activeRestaurant;
+  const { theme = {}, program = {}, links = {} } = activeRestaurant || {};
 
   // Custom themes list state (seeded with PRESET_THEMES + allows user to add their own custom styles)
   const [customThemesList, setCustomThemesList] = useState(PRESET_THEMES);

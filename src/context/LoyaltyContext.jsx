@@ -93,8 +93,22 @@ export function LoyaltyProvider({ children }) {
     return '';
   });
 
+  const [hasServerBackend, setHasServerBackend] = useState(true);
+
+  // Cross-tab real-time sync via BroadcastChannel (Cashier Terminal <-> Customer Pass)
+  const broadcastSync = (type, payload) => {
+    if (typeof window !== 'undefined' && window.BroadcastChannel) {
+      try {
+        const ch = new BroadcastChannel('loyalty_forge_sync');
+        ch.postMessage({ type, payload });
+        ch.close();
+      } catch {}
+    }
+  };
+
   // Real-time synchronization with server for cross-device updates (Laptop Cashier <-> Customer Phone)
   const syncWithServer = async () => {
+    if (!hasServerBackend) return;
     try {
       const res = await fetch('/api/loyalty/state');
       if (res.ok) {
@@ -119,6 +133,10 @@ export function LoyaltyProvider({ children }) {
             return data.customers;
           });
         }
+      } else if (res.status === 404) {
+        // No local Node server running (e.g. static production deployment on Vercel)
+        // Disable aggressive polling to prevent network congestion
+        setHasServerBackend(false);
       }
     } catch (e) {
       // offline fallback
@@ -127,8 +145,35 @@ export function LoyaltyProvider({ children }) {
 
   useEffect(() => {
     syncWithServer();
+    if (!hasServerBackend) return;
     const interval = setInterval(syncWithServer, 1000);
     return () => clearInterval(interval);
+  }, [activeCustomerPhone, activeRestaurantId, hasServerBackend]);
+
+  // Multi-tab real-time sync listener (Instant confetti on customer pass when cashier stamps)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.BroadcastChannel) return;
+    const channel = new BroadcastChannel('loyalty_forge_sync');
+
+    channel.onmessage = (event) => {
+      const { type, payload } = event.data || {};
+      if (type === 'STAMP_AWARDED') {
+        if (payload?.phone === activeCustomerPhone && payload?.restaurantId === activeRestaurantId) {
+          setLastStampAnimationTimestamp(Date.now());
+        }
+        if (payload?.customer) {
+          setCustomers(prev => {
+            const exists = prev.some(c => c.phone === payload.customer.phone && c.restaurantId === payload.customer.restaurantId);
+            if (exists) {
+              return prev.map(c => (c.phone === payload.customer.phone && c.restaurantId === payload.customer.restaurantId) ? payload.customer : c);
+            }
+            return [...prev, payload.customer];
+          });
+        }
+      }
+    };
+
+    return () => channel.close();
   }, [activeCustomerPhone, activeRestaurantId]);
 
   // Sync to localStorage
@@ -392,7 +437,13 @@ export function LoyaltyProvider({ children }) {
     setActiveCustomerPhone(cleanPhone);
     setLastStampAnimationTimestamp(Date.now());
 
-    // Broadcast to server so all connected mobile phones update instantly!
+    // Broadcast across browser tabs and devices in real-time
+    broadcastSync('STAMP_AWARDED', {
+      phone: cleanPhone,
+      restaurantId: activeRestaurantId
+    });
+
+    // Broadcast to server (if local API is active)
     fetch('/api/loyalty/stamp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
