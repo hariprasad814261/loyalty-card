@@ -7,6 +7,9 @@ import StandeeGenerator from './components/qr-standee/StandeeGenerator';
 import CustomerMobilePass from './components/customer-pass/CustomerMobilePass';
 import CashierScanner from './components/cashier/CashierScanner';
 import CustomerTable from './components/marketing-crm/CustomerTable';
+import SuperAdminDashboard from './components/super-admin/SuperAdminDashboard';
+import MerchantLoginModal from './components/auth/MerchantLoginModal';
+import ShopPortalHeader from './components/portal/ShopPortalHeader';
 import { 
   Palette, 
   Printer, 
@@ -20,7 +23,10 @@ import {
   HelpCircle,
   X,
   Crown,
-  ChevronDown
+  ChevronDown,
+  KeyRound,
+  Lock,
+  ShieldCheck
 } from 'lucide-react';
 
 function NavigationHeader({ onOpenHelp }) {
@@ -31,7 +37,8 @@ function NavigationHeader({ onOpenHelp }) {
     addNewRestaurant, 
     activeTab, 
     setActiveTab,
-    resetToDefaultData 
+    resetToDefaultData,
+    setRouteMode 
   } = useLoyalty();
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -137,9 +144,31 @@ function NavigationHeader({ onOpenHelp }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               type="button"
+              onClick={() => setRouteMode('login')}
+              className="lf-btn lf-btn-secondary"
+              style={{ padding: '7px 11px', fontSize: '12px', gap: '5px' }}
+              title="Cashier / Merchant Terminal Login"
+            >
+              <Lock size={13} style={{ color: '#D4AF37' }} />
+              <span>Merchant Login</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setRouteMode('super-admin')}
+              className="lf-btn lf-btn-secondary"
+              style={{ padding: '7px 11px', fontSize: '12px', gap: '5px' }}
+              title="Platform Super-Admin Panel"
+            >
+              <Crown size={13} style={{ color: '#F59E0B' }} />
+              <span>Super-Admin</span>
+            </button>
+
+            <button
+              type="button"
               onClick={onOpenHelp}
               className="lf-btn lf-btn-secondary"
-              style={{ padding: '7px 14px', fontSize: '12px' }}
+              style={{ padding: '7px 12px', fontSize: '12px' }}
             >
               <HelpCircle size={14} style={{ color: '#D4AF37' }} />
               <span>SOP Guide</span>
@@ -352,13 +381,120 @@ function GuestCustomerPassLayout() {
 }
 
 function MainApp() {
-  const { activeTab, isGuestMode } = useLoyalty();
+  const { 
+    activeTab, 
+    isGuestMode, 
+    routeMode, 
+    setRouteMode, 
+    merchantSession 
+  } = useLoyalty();
   const [showHelp, setShowHelp] = useState(false);
 
-  if (isGuestMode) {
+  // 1. Super-Admin Master Control Center
+  if (routeMode === 'super-admin') {
+    return (
+      <div className="lf-app">
+        <header className="lf-header" style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.25)', background: '#14100E' }}>
+          <div className="lf-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className="lf-brand-emblem">
+                <Crown size={20} strokeWidth={2.5} />
+              </div>
+              <div>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#FDFBF7' }}>LoyaltyForge Platform Master</span>
+                <span style={{ fontSize: '11px', color: '#D4AF37', display: 'block' }}>Super-Admin Mode</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setRouteMode('demo')}
+              className="lf-btn lf-btn-secondary"
+              style={{ fontSize: '12px', padding: '6px 14px' }}
+            >
+              Exit to Studio Preview
+            </button>
+          </div>
+        </header>
+        <main>
+          <SuperAdminDashboard />
+        </main>
+      </div>
+    );
+  }
+
+  // 2. Merchant / Cashier Standalone Login (/login)
+  if (routeMode === 'login' && !merchantSession) {
+    return (
+      <div className="lf-app">
+        <header className="lf-header" style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.25)', background: '#14100E' }}>
+          <div className="lf-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className="lf-brand-emblem">
+                <Crown size={20} strokeWidth={2.5} />
+              </div>
+              <div>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#FDFBF7' }}>LoyaltyForge Partner Terminal</span>
+                <span style={{ fontSize: '11px', color: '#D4AF37', display: 'block' }}>Merchant Login</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setRouteMode('demo')}
+              className="lf-btn lf-btn-secondary"
+              style={{ fontSize: '12px', padding: '6px 14px' }}
+            >
+              Return to Studio
+            </button>
+          </div>
+        </header>
+        <main style={{ padding: '24px 16px' }}>
+          <MerchantLoginModal isStandalonePage={true} onClose={() => setRouteMode('merchant')} />
+        </main>
+      </div>
+    );
+  }
+
+  // 3. Guest Customer Mobile Pass
+  if (isGuestMode || routeMode === 'guest') {
     return <GuestCustomerPassLayout />;
   }
 
+  // 4. Logged-in Merchant Isolated Portal (No Restaurant Switcher!)
+  if (merchantSession || routeMode === 'merchant') {
+    return (
+      <div className="lf-app">
+        <ShopPortalHeader />
+
+        <main className="lf-container">
+          {activeTab === 'cashier' && <CashierScanner />}
+          {activeTab === 'crm' && <CustomerTable />}
+          {activeTab === 'standee' && <StandeeGenerator />}
+          {activeTab === 'studio' && (
+            <div className="lf-studio-grid">
+              <div>
+                <CardConfigForm />
+              </div>
+              <div className="lf-sticky-workstation">
+                <LivePreviewContainer />
+              </div>
+            </div>
+          )}
+          {activeTab === 'customer-pass' && <CustomerMobilePass />}
+        </main>
+
+        <footer style={{
+          padding: '24px',
+          textAlign: 'center',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          color: '#6E655B',
+          fontSize: '11.5px',
+          fontFamily: 'var(--font-mono)'
+        }}>
+          {merchantSession?.restaurantName || 'Store'} Cashier Terminal • Isolated Merchant Session • LoyaltyForge
+        </footer>
+      </div>
+    );
+  }
+
+  // 5. Default General Preview / Studio Mode
   return (
     <div className="lf-app">
       <NavigationHeader onOpenHelp={() => setShowHelp(true)} />

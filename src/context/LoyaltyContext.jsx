@@ -15,44 +15,57 @@ export function LoyaltyProvider({ children }) {
     return initialRestaurants || [DEFAULT_RESTAURANT];
   });
 
-  // Parse URL on initial load for QR code scanning from mobile phones
+  // Parse URL on initial load for QR code scanning, merchant portal, or super admin
   const getInitialRouteState = () => {
     try {
       const pathname = window.location.pathname || '';
       const searchParams = new URLSearchParams(window.location.search || '');
       const hash = window.location.hash || '';
       
-      let restId = searchParams.get('pass') || searchParams.get('restaurant') || searchParams.get('resto') || searchParams.get('id');
+      let restId = searchParams.get('pass') || searchParams.get('restaurant') || searchParams.get('resto') || searchParams.get('id') || searchParams.get('portal') || searchParams.get('shop');
       let tab = 'studio';
-      let isGuest = false;
+      let mode = 'demo'; // 'demo' | 'guest' | 'merchant' | 'super-admin' | 'login'
 
-      if (pathname === '/pass' || pathname.startsWith('/pass/') || pathname.startsWith('/pass')) {
+      if (pathname === '/super-admin' || searchParams.has('admin') || searchParams.get('mode') === 'admin' || hash.includes('super-admin')) {
+        mode = 'super-admin';
+        tab = 'crm';
+      } else if (pathname === '/login' || searchParams.has('login') || searchParams.get('mode') === 'login' || hash.includes('login')) {
+        mode = 'login';
+      } else if (pathname.startsWith('/portal') || searchParams.has('portal') || searchParams.has('shop')) {
+        const parts = pathname.replace(/^\/portal\/?/, '').split('/').filter(Boolean);
+        if (parts[0]) restId = parts[0];
+        mode = 'merchant';
+        tab = 'cashier';
+      } else if (pathname === '/pass' || pathname.startsWith('/pass/') || searchParams.has('pass') || hash.includes('pass')) {
         const parts = pathname.replace(/^\/pass\/?/, '').split('/').filter(Boolean);
         if (parts[0]) restId = parts[0];
+        mode = 'guest';
         tab = 'customer-pass';
-        isGuest = true;
-      } else if (searchParams.has('pass')) {
-        tab = 'customer-pass';
-        isGuest = true;
-      } else if (hash.includes('pass')) {
-        tab = 'customer-pass';
-        const match = hash.match(/pass\/?([a-zA-Z0-9_-]+)?/);
-        if (match && match[1]) restId = match[1];
-        isGuest = true;
       }
 
-      return { restId, tab, isGuest };
+      return { restId, tab, mode, isGuest: mode === 'guest' };
     } catch {
-      return { restId: null, tab: 'studio', isGuest: false };
+      return { restId: null, tab: 'studio', mode: 'demo', isGuest: false };
     }
   };
 
   const initialRoute = getInitialRouteState();
 
+  const [routeMode, setRouteMode] = useState(initialRoute.mode);
   const [isGuestMode, setIsGuestMode] = useState(initialRoute.isGuest);
 
+  // Active Merchant Session (for shopkeeper/cashier logged in with phone + PIN)
+  const [merchantSession, setMerchantSession] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('loyalty_merchant_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [activeRestaurantId, setActiveRestaurantId] = useState(() => {
-    // If the visitor scanned a QR code with a specific restaurant ID, prioritize it immediately
+    if (merchantSession?.restaurantId) return merchantSession.restaurantId;
     return initialRoute.restId || restaurants[0]?.id || 'rest_001';
   });
 
@@ -165,13 +178,92 @@ export function LoyaltyProvider({ children }) {
     setActiveRestaurantId(id);
   };
 
-  // Add new restaurant
-  const addNewRestaurant = (customData = {}) => {
-    const newId = `rest_${Date.now()}`;
+  // Smart Role Detection: Check if a phone number belongs to the restaurant owner/staff
+  const checkIsOwnerPhone = (restaurantId, inputPhone) => {
+    if (!inputPhone) return { isOwner: false };
+    const clean = inputPhone.replace(/\D/g, '');
+    if (clean.length < 10) return { isOwner: false };
+    const rest = restaurants.find(r => r.id === restaurantId);
+    if (!rest || !rest.owner?.phone) return { isOwner: false };
+    const ownerClean = (rest.owner.phone || '').replace(/\D/g, '');
+    const isOwner = ownerClean.length >= 10 && ownerClean.endsWith(clean.slice(-10));
+    return {
+      isOwner,
+      restaurant: rest,
+      ownerName: rest.owner.name || 'Store Owner'
+    };
+  };
+
+  // Find any restaurant registered to a given owner mobile number (for /login page)
+  const findRestaurantByOwnerPhone = (inputPhone) => {
+    if (!inputPhone) return null;
+    const clean = inputPhone.replace(/\D/g, '');
+    if (clean.length < 10) return null;
+    return restaurants.find(r => {
+      const ownerClean = (r.owner?.phone || '').replace(/\D/g, '');
+      return ownerClean.length >= 10 && ownerClean.endsWith(clean.slice(-10));
+    }) || null;
+  };
+
+  // Verify merchant 4-digit PIN and create session
+  const verifyMerchantPin = (restaurantId, pin) => {
+    const rest = restaurants.find(r => r.id === restaurantId);
+    if (!rest) return { success: false, error: 'Restaurant not found' };
+    const expectedPin = rest.owner?.pin || '1234';
+    if (pin.trim() === expectedPin.trim()) {
+      const session = {
+        restaurantId: rest.id,
+        restaurantName: rest.name,
+        ownerPhone: rest.owner?.phone || '',
+        ownerName: rest.owner?.name || 'Store Owner',
+        loggedInAt: Date.now()
+      };
+      setMerchantSession(session);
+      try {
+        sessionStorage.setItem('loyalty_merchant_session', JSON.stringify(session));
+      } catch {}
+      setActiveRestaurantId(rest.id);
+      setIsGuestMode(false);
+      setRouteMode('merchant');
+      setActiveTab('cashier'); // Land on Cashier Scanner POS
+      return { success: true, restaurant: rest };
+    }
+    return { success: false, error: 'Incorrect 4-digit PIN. Please check and try again.' };
+  };
+
+  // Verify merchant phone + PIN on the /login screen
+  const verifyMerchantLogin = (phone, pin) => {
+    const clean = (phone || '').replace(/\D/g, '');
+    const rest = findRestaurantByOwnerPhone(clean);
+    if (!rest) {
+      return { success: false, error: 'No registered restaurant found for this mobile number.' };
+    }
+    return verifyMerchantPin(rest.id, pin);
+  };
+
+  // End merchant session
+  const merchantLogout = () => {
+    setMerchantSession(null);
+    try {
+      sessionStorage.removeItem('loyalty_merchant_session');
+    } catch {}
+    setRouteMode('demo');
+  };
+
+  // Super-Admin Onboarding: Add new restaurant with dedicated owner phone & PIN
+  const onboardNewRestaurant = (customData = {}) => {
+    const newId = customData.id || `rest_${(customData.name || 'shop').toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 16)}_${Date.now().toString().slice(-4)}`;
     const newRest = {
       ...DEFAULT_RESTAURANT,
       id: newId,
       name: customData.name || 'New Restaurant',
+      tagline: customData.tagline || 'Artisanal Culinary Craft',
+      category: customData.category || 'Restaurant & Dining',
+      owner: {
+        name: customData.ownerName || 'Store Manager',
+        phone: (customData.ownerPhone || '').replace(/\D/g, ''),
+        pin: customData.ownerPin || '1234'
+      },
       ...customData
     };
     const updated = [...restaurants, newRest];
@@ -183,6 +275,11 @@ export function LoyaltyProvider({ children }) {
       body: JSON.stringify({ restaurants: updated })
     }).catch(() => {});
     return newRest;
+  };
+
+  // Add new restaurant (Card Studio fallback)
+  const addNewRestaurant = (customData = {}) => {
+    return onboardNewRestaurant(customData);
   };
 
   // Register or retrieve customer
@@ -363,6 +460,15 @@ export function LoyaltyProvider({ children }) {
         activeTab,
         isGuestMode,
         setIsGuestMode,
+        routeMode,
+        setRouteMode,
+        merchantSession,
+        checkIsOwnerPhone,
+        findRestaurantByOwnerPhone,
+        verifyMerchantPin,
+        verifyMerchantLogin,
+        merchantLogout,
+        onboardNewRestaurant,
         serverIp,
         lastStampAnimationTimestamp,
         setActiveTab,

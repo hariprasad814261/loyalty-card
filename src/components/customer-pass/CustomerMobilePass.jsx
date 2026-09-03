@@ -14,8 +14,10 @@ import {
   CheckCircle2, 
   Smartphone,
   Crown,
-  Star
+  Star,
+  Lock
 } from 'lucide-react';
+import { MerchantLoginModal } from '../auth/MerchantLoginModal';
 
 export default function CustomerMobilePass() {
   const { 
@@ -25,11 +27,13 @@ export default function CustomerMobilePass() {
     setActiveCustomerPhone,
     registerOrGetCustomer, 
     isGuestMode,
-    lastStampAnimationTimestamp 
+    lastStampAnimationTimestamp,
+    checkIsOwnerPhone
   } = useLoyalty();
 
   const [inputPhone, setInputPhone] = useState(activeCustomerPhone || '');
   const [showWalletExportSuccess, setShowWalletExportSuccess] = useState(null);
+  const [showMerchantAuthModal, setShowMerchantAuthModal] = useState(false);
 
   const { theme = {}, program = {}, links = {} } = activeRestaurant || {};
   const totalStamps = program.totalStamps || 5;
@@ -48,9 +52,16 @@ export default function CustomerMobilePass() {
   }, [lastStampAnimationTimestamp, isRewardReady]);
 
   const handlePhoneSubmit = (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     const clean = inputPhone.replace(/\D/g, '');
     if (clean.length >= 10) {
+      // Smart Role Detection: If this mobile number belongs to the store owner/staff
+      const ownerCheck = checkIsOwnerPhone(activeRestaurant?.id, clean);
+      if (ownerCheck.isOwner) {
+        setShowMerchantAuthModal(true);
+        return;
+      }
+
       localStorage.setItem('guest_loyalty_phone', clean);
       registerOrGetCustomer(clean);
       setActiveCustomerPhone(clean);
@@ -154,9 +165,45 @@ export default function CustomerMobilePass() {
             </button>
           </form>
 
-          <span style={{ fontSize: '10.5px', color: '#6E655B' }}>
-            🔒 Instant check-in • No password or app download required
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+            <span style={{ fontSize: '10.5px', color: '#6E655B' }}>
+              🔒 Instant check-in • No password or app download required
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setShowMerchantAuthModal(true)}
+              className="lf-btn-ghost"
+              style={{
+                fontSize: '11px',
+                color: '#8E8478',
+                padding: '4px 8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                cursor: 'pointer'
+              }}
+            >
+              <Lock size={12} style={{ color: '#D4AF37' }} />
+              <span>Staff & Cashier Terminal Login</span>
+            </button>
+          </div>
+
+          {/* Owner Detected / Staff PIN Unlock Modal */}
+          {showMerchantAuthModal && (
+            <MerchantLoginModal
+              prefilledPhone={inputPhone}
+              prefilledRestaurant={activeRestaurant}
+              onClose={() => setShowMerchantAuthModal(false)}
+              onContinueAsGuest={() => {
+                setShowMerchantAuthModal(false);
+                const clean = inputPhone.replace(/\D/g, '') || '9876543210';
+                localStorage.setItem('guest_loyalty_phone', clean);
+                registerOrGetCustomer(clean);
+                setActiveCustomerPhone(clean);
+              }}
+            />
+          )}
         </div>
       </div>
     );
