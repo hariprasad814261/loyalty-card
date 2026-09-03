@@ -3,6 +3,12 @@ import initialRestaurants from '../../data/restaurants.json';
 import initialCustomers from '../../data/customers.json';
 import { DEFAULT_RESTAURANT } from '../utils/presetTemplates';
 
+export const normalizePhone = (p) => {
+  if (!p) return '';
+  const digits = String(p).replace(/\D/g, '');
+  return digits.length > 10 ? digits.slice(-10) : digits;
+};
+
 const LoyaltyContext = createContext();
 
 export function LoyaltyProvider({ children }) {
@@ -127,8 +133,6 @@ export function LoyaltyProvider({ children }) {
     return '';
   });
 
-  const [hasServerBackend, setHasServerBackend] = useState(true);
-
   // Cross-tab real-time sync via BroadcastChannel (Cashier Terminal <-> Customer Pass)
   const broadcastSync = (type, payload) => {
     if (typeof window !== 'undefined' && window.BroadcastChannel) {
@@ -142,35 +146,40 @@ export function LoyaltyProvider({ children }) {
 
   // Real-time synchronization with server for cross-device updates (Laptop Cashier <-> Customer Phone)
   const syncWithServer = async () => {
-    if (!hasServerBackend) return;
     try {
       const res = await fetch('/api/loyalty/state');
       if (res.ok) {
-        const data = await res.json();
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          return; // Ignore if HTML rewrite was returned
+        }
+
         if (data?.serverIp && data.serverIp !== '127.0.0.1') {
           setServerIp(data.serverIp);
         }
         if (Array.isArray(data.restaurants) && data.restaurants.length > 0) {
           setRestaurants(data.restaurants);
-          if (initialRoute.restId && data.restaurants.some(r => r.id === initialRoute.restId)) {
-            setActiveRestaurantId(initialRoute.restId);
-          }
         }
         if (Array.isArray(data.customers)) {
           setCustomers(prev => {
-            // Check if activeCustomer visits or stamps increased to trigger confetti on phone!
-            const currentCust = prev.find(c => c.phone === activeCustomerPhone && c.restaurantId === activeRestaurantId);
-            const serverCust = data.customers.find(c => c.phone === activeCustomerPhone && c.restaurantId === activeRestaurantId);
-            if (serverCust && currentCust && serverCust.visits > currentCust.visits) {
+            const guestStored = typeof window !== 'undefined' ? localStorage.getItem('guest_loyalty_phone') : '';
+            const targetPhone = normalizePhone(guestStored || activeCustomerPhone);
+
+            const currentCust = prev.find(c => normalizePhone(c.phone) === targetPhone && c.restaurantId === activeRestaurantId);
+            const serverCust = data.customers.find(c => normalizePhone(c.phone) === targetPhone && c.restaurantId === activeRestaurantId);
+
+            if (serverCust && currentCust && (serverCust.visits > currentCust.visits || serverCust.loyaltyPoints > currentCust.loyaltyPoints)) {
+              setLastStampAnimationTimestamp(Date.now());
+            } else if (serverCust && !currentCust && serverCust.visits > 0) {
               setLastStampAnimationTimestamp(Date.now());
             }
+
             return data.customers;
           });
         }
-      } else if (res.status === 404) {
-        // No local Node server running (e.g. static production deployment on Vercel)
-        // Disable aggressive polling to prevent network congestion
-        setHasServerBackend(false);
       }
     } catch (e) {
       // offline fallback
@@ -179,10 +188,9 @@ export function LoyaltyProvider({ children }) {
 
   useEffect(() => {
     syncWithServer();
-    if (!hasServerBackend) return;
-    const interval = setInterval(syncWithServer, 1000);
+    const interval = setInterval(syncWithServer, 1200);
     return () => clearInterval(interval);
-  }, [activeCustomerPhone, activeRestaurantId, hasServerBackend]);
+  }, [activeCustomerPhone, activeRestaurantId]);
 
   // Multi-tab real-time sync listener (Instant confetti on customer pass when cashier stamps)
   useEffect(() => {
@@ -192,14 +200,16 @@ export function LoyaltyProvider({ children }) {
     channel.onmessage = (event) => {
       const { type, payload } = event.data || {};
       if (type === 'STAMP_AWARDED') {
-        if (payload?.phone === activeCustomerPhone && payload?.restaurantId === activeRestaurantId) {
+        const targetClean = normalizePhone(activeCustomerPhone);
+        const payloadClean = normalizePhone(payload?.phone);
+        if (payloadClean === targetClean && payload?.restaurantId === activeRestaurantId) {
           setLastStampAnimationTimestamp(Date.now());
         }
         if (payload?.customer) {
           setCustomers(prev => {
-            const exists = prev.some(c => c.phone === payload.customer.phone && c.restaurantId === payload.customer.restaurantId);
+            const exists = prev.some(c => normalizePhone(c.phone) === normalizePhone(payload.customer.phone) && c.restaurantId === payload.customer.restaurantId);
             if (exists) {
-              return prev.map(c => (c.phone === payload.customer.phone && c.restaurantId === payload.customer.restaurantId) ? payload.customer : c);
+              return prev.map(c => (normalizePhone(c.phone) === normalizePhone(payload.customer.phone) && c.restaurantId === payload.customer.restaurantId) ? payload.customer : c);
             }
             return [...prev, payload.customer];
           });
@@ -365,10 +375,10 @@ export function LoyaltyProvider({ children }) {
     return onboardNewRestaurant(customData);
   };
 
-  // Register or retrieve customer
+  // Register customer or get existing record
   const registerOrGetCustomer = (phone, name = 'Guest Customer') => {
-    const cleanPhone = phone.replace(/\D/g, '');
-    let existing = customers.find(c => c.phone === cleanPhone && c.restaurantId === activeRestaurantId);
+    const cleanPhone = normalizePhone(phone);
+    let existing = customers.find(c => normalizePhone(c.phone) === cleanPhone && c.restaurantId === activeRestaurantId);
     if (!existing) {
       const newCust = {
         id: `cust_${Date.now()}`,
@@ -400,15 +410,17 @@ export function LoyaltyProvider({ children }) {
 
   // Add visit / stamp to customer
   const addStampToCustomer = (phone, billAmount = 0) => {
-    const cleanPhone = phone.replace(/\D/g, '');
+    const cleanPhone = normalizePhone(phone);
     const amountNum = parseFloat(billAmount) || 0;
     const totalStampsNeeded = activeRestaurant.program?.totalStamps || 5;
     const rewardTitle = activeRestaurant.program?.rewardTitle || '₹100 Instant Discount';
     const vipThreshold = activeRestaurant.program?.vipSpendThreshold || 5000;
     const pointsPerCurrency = activeRestaurant.program?.pointsPerCurrency || 1;
 
+    let targetUpdatedCust = null;
+
     setCustomers(prev => {
-      const index = prev.findIndex(c => c.phone === cleanPhone && c.restaurantId === activeRestaurantId);
+      const index = prev.findIndex(c => normalizePhone(c.phone) === cleanPhone && c.restaurantId === activeRestaurantId);
       const target = index >= 0 ? prev[index] : {
         id: `cust_${Date.now()}`,
         restaurantId: activeRestaurantId,
@@ -464,6 +476,8 @@ export function LoyaltyProvider({ children }) {
         vouchers: newVouchers
       };
 
+      targetUpdatedCust = updatedCust;
+
       if (index >= 0) {
         const copy = [...prev];
         copy[index] = updatedCust;
@@ -478,7 +492,8 @@ export function LoyaltyProvider({ children }) {
     // Broadcast across browser tabs and devices in real-time
     broadcastSync('STAMP_AWARDED', {
       phone: cleanPhone,
-      restaurantId: activeRestaurantId
+      restaurantId: activeRestaurantId,
+      customer: targetUpdatedCust
     });
 
     // Broadcast to server (if local API is active)
@@ -498,9 +513,9 @@ export function LoyaltyProvider({ children }) {
 
   // Redeem voucher
   const redeemCustomerVoucher = (phone, voucherCode) => {
-    const cleanPhone = phone.replace(/\D/g, '');
+    const cleanPhone = normalizePhone(phone);
     setCustomers(prev => prev.map(c => {
-      if (c.phone === cleanPhone && c.restaurantId === activeRestaurantId) {
+      if (normalizePhone(c.phone) === cleanPhone && c.restaurantId === activeRestaurantId) {
         return {
           ...c,
           vouchers: (c.vouchers || []).map(v => {

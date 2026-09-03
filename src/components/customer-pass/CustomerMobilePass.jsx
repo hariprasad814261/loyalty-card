@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLoyalty } from '../../context/LoyaltyContext';
+import { useLoyalty, normalizePhone } from '../../context/LoyaltyContext';
 import { getStampIconComponent } from '../../utils/stampIconHelper';
 import { getGoogleReviewUrl, getInstagramUrl, getInstagramDisplayHandle } from '../../utils/socialLinkHelper';
 import confetti from 'canvas-confetti';
@@ -12,9 +12,11 @@ import {
   Phone, 
   QrCode, 
   CheckCircle2, 
+  ExternalLink,
+  ChevronRight,
+  ShieldCheck,
   Smartphone,
   Crown,
-  Star,
   Lock
 } from 'lucide-react';
 import { MerchantLoginModal } from '../auth/MerchantLoginModal';
@@ -37,12 +39,14 @@ export default function CustomerMobilePass() {
     ? (typeof window !== 'undefined' ? localStorage.getItem('guest_loyalty_phone') || '' : '')
     : activeCustomerPhone;
 
+  const cleanGuestPhone = normalizePhone(guestPhone);
+
   const currentCustomer = isGuestMode
-    ? ((guestPhone && guestPhone.length >= 10)
-        ? (customers.find(c => c.phone === guestPhone && c.restaurantId === activeRestaurant?.id) || {
-            id: `cust_${activeRestaurant?.id || 'rest'}_${guestPhone.slice(-4)}`,
-            phone: guestPhone,
-            name: `Guest ${guestPhone.slice(-4)}`,
+    ? ((cleanGuestPhone && cleanGuestPhone.length === 10)
+        ? (customers.find(c => normalizePhone(c.phone) === cleanGuestPhone && c.restaurantId === activeRestaurant?.id) || {
+            id: `cust_${activeRestaurant?.id || 'rest'}_${cleanGuestPhone.slice(-4)}`,
+            phone: cleanGuestPhone,
+            name: `Guest ${cleanGuestPhone.slice(-4)}`,
             restaurantId: activeRestaurant?.id,
             visits: 0,
             totalSpend: 0,
@@ -52,7 +56,7 @@ export default function CustomerMobilePass() {
         : null)
     : studioCustomer;
 
-  const [inputPhone, setInputPhone] = useState(guestPhone || '');
+  const [inputPhone, setInputPhone] = useState(cleanGuestPhone || '');
   const [showWalletExportSuccess, setShowWalletExportSuccess] = useState(null);
   const [showMerchantAuthModal, setShowMerchantAuthModal] = useState(false);
 
@@ -63,10 +67,10 @@ export default function CustomerMobilePass() {
   const isRewardReady = visits > 0 && stampsInCycle === 0;
 
   useEffect(() => {
-    if (lastStampAnimationTimestamp && isRewardReady) {
+    if (lastStampAnimationTimestamp) {
       confetti({
-        particleCount: 90,
-        spread: 75,
+        particleCount: isRewardReady ? 100 : 35,
+        spread: isRewardReady ? 75 : 45,
         origin: { y: 0.6 }
       });
     }

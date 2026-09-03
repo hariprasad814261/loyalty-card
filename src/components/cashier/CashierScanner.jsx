@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLoyalty } from '../../context/LoyaltyContext';
+import { useLoyalty, normalizePhone } from '../../context/LoyaltyContext';
 import { 
   Scan, 
   Phone, 
@@ -25,15 +25,15 @@ export default function CashierScanner() {
     redeemVoucher 
   } = useLoyalty();
 
-  const [searchPhone, setSearchPhone] = useState(activeCustomerPhone || '9876543210');
+  const [searchPhone, setSearchPhone] = useState(normalizePhone(activeCustomerPhone) || '9876543210');
   const [billAmount, setBillAmount] = useState('');
   const [lastActionMessage, setLastActionMessage] = useState(null);
 
   const { program = {} } = activeRestaurant || {};
   const totalStamps = program.totalStamps || 5;
 
-  const cleanPhone = (searchPhone || '').replace(/\D/g, '');
-  const currentCustomer = customers.find(c => c.phone === cleanPhone && c.restaurantId === activeRestaurant?.id) || {
+  const cleanPhone = normalizePhone(searchPhone);
+  const currentCustomer = customers.find(c => normalizePhone(c.phone) === cleanPhone && c.restaurantId === activeRestaurant?.id) || {
     phone: cleanPhone,
     name: 'Guest Customer',
     restaurantId: activeRestaurant?.id,
@@ -44,7 +44,7 @@ export default function CashierScanner() {
   };
 
   const handleLookup = (phoneToUse) => {
-    const target = (phoneToUse || searchPhone || '').replace(/\D/g, '');
+    const target = normalizePhone(phoneToUse || searchPhone);
     if (target.length >= 10) {
       registerOrGetCustomer(target);
     }

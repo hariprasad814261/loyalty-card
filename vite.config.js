@@ -87,7 +87,8 @@ function loyaltyApiPlugin() {
           // POST /api/loyalty/stamp
           if (req.method === 'POST' && pathname === '/api/loyalty/stamp') {
             const { phone, restaurantId, billAmount = 0 } = payload;
-            const cleanPhone = (phone || '').replace(/\D/g, '');
+            const digits = (phone || '').replace(/\D/g, '');
+            const cleanPhone = digits.length > 10 ? digits.slice(-10) : digits;
             const amountNum = parseFloat(billAmount) || 0;
 
             const customers = readJson(customersPath, []);
@@ -98,7 +99,11 @@ function loyaltyApiPlugin() {
             const vipThreshold = targetRest?.program?.vipSpendThreshold || 5000;
             const pointsPerCurrency = targetRest?.program?.pointsPerCurrency || 1;
 
-            const index = customers.findIndex(c => c.phone === cleanPhone && c.restaurantId === restaurantId);
+            const index = customers.findIndex(c => {
+              const cDigits = (c.phone || '').replace(/\D/g, '');
+              const cPhone = cDigits.length > 10 ? cDigits.slice(-10) : cDigits;
+              return cPhone === cleanPhone && c.restaurantId === restaurantId;
+            });
             const target = index >= 0 ? customers[index] : {
               id: `cust_${Date.now()}`,
               restaurantId: restaurantId,
@@ -167,9 +172,14 @@ function loyaltyApiPlugin() {
           // POST /api/loyalty/register
           if (req.method === 'POST' && pathname === '/api/loyalty/register') {
             const { phone, restaurantId, name } = payload;
-            const cleanPhone = (phone || '').replace(/\D/g, '');
+            const digits = (phone || '').replace(/\D/g, '');
+            const cleanPhone = digits.length > 10 ? digits.slice(-10) : digits;
             const customers = readJson(customersPath, []);
-            let existing = customers.find(c => c.phone === cleanPhone && c.restaurantId === restaurantId);
+            let existing = customers.find(c => {
+              const cDigits = (c.phone || '').replace(/\D/g, '');
+              const cPhone = cDigits.length > 10 ? cDigits.slice(-10) : cDigits;
+              return cPhone === cleanPhone && c.restaurantId === restaurantId;
+            });
             if (!existing) {
               existing = {
                 id: `cust_${Date.now()}`,
@@ -194,10 +204,13 @@ function loyaltyApiPlugin() {
           // POST /api/loyalty/redeem
           if (req.method === 'POST' && pathname === '/api/loyalty/redeem') {
             const { phone, restaurantId, voucherCode } = payload;
-            const cleanPhone = (phone || '').replace(/\D/g, '');
+            const digits = (phone || '').replace(/\D/g, '');
+            const cleanPhone = digits.length > 10 ? digits.slice(-10) : digits;
             const customers = readJson(customersPath, []);
             const updated = customers.map(c => {
-              if (c.phone === cleanPhone && c.restaurantId === restaurantId) {
+              const cDigits = (c.phone || '').replace(/\D/g, '');
+              const cPhone = cDigits.length > 10 ? cDigits.slice(-10) : cDigits;
+              if (cPhone === cleanPhone && c.restaurantId === restaurantId) {
                 return {
                   ...c,
                   vouchers: (c.vouchers || []).map(v => {
