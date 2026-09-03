@@ -245,34 +245,72 @@ export function LoyaltyProvider({ children }) {
     return () => clearInterval(interval);
   }, [activeCustomerPhone, activeRestaurantId]);
 
-  // Cloud Real-Time Pub/Sub Channel (Laptop Cashier <-> Mobile Phone across Internet/Hotspot)
+  // Universal Cloud Real-Time Pub/Sub Channel (Laptop Cashier <-> Mobile Phone across Internet/Hotspot)
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.EventSource) return;
-    const channelName = `loyaltyforge_room_${activeRestaurantId || 'rest_001'}`;
-    let es;
-    try {
-      es = new EventSource(`https://ntfy.sh/${channelName}/sse`);
-      es.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data?.message) {
-            const parsed = JSON.parse(data.message);
-            if (parsed.type === 'STAMP_AWARDED' && parsed.customer) {
-              setCustomers(prev => mergeCustomerRecords(prev, [parsed.customer]));
-              const guestStored = typeof window !== 'undefined' ? localStorage.getItem('guest_loyalty_phone') : '';
-              const targetClean = normalizePhone(guestStored || activeCustomerPhone);
-              const custClean = normalizePhone(parsed.customer.phone);
-              if (custClean === targetClean && parsed.customer.restaurantId === activeRestaurantId) {
-                setLastStampAnimationTimestamp(Date.now());
-              }
-            }
+    if (typeof window === 'undefined') return;
+
+    const handleIncomingMessage = (rawMessage) => {
+      try {
+        const parsed = typeof rawMessage === 'string' ? JSON.parse(rawMessage) : rawMessage;
+        if (parsed?.type === 'STAMP_AWARDED' && parsed.customer) {
+          setCustomers(prev => mergeCustomerRecords(prev, [parsed.customer]));
+          const guestStored = localStorage.getItem('guest_loyalty_phone') || '';
+          const targetClean = normalizePhone(guestStored || activeCustomerPhone);
+          const custClean = normalizePhone(parsed.customer.phone);
+          if (custClean === targetClean && (parsed.customer.restaurantId === activeRestaurantId || !parsed.customer.restaurantId)) {
+            setLastStampAnimationTimestamp(Date.now());
           }
-        } catch {}
-      };
-    } catch {}
+        }
+      } catch {}
+    };
+
+    // 1. Instant Real-Time SSE Stream
+    let es;
+    if (window.EventSource) {
+      try {
+        es = new EventSource('https://ntfy.sh/loyaltyforge_universal_sync/sse');
+        es.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data?.message) {
+              handleIncomingMessage(data.message);
+            }
+          } catch {}
+        };
+      } catch {}
+    }
+
+    // 2. Active Mobile Polling (bypasses mobile browser battery throttles)
+    const pollCloud = async () => {
+      try {
+        const res = await fetch('https://ntfy.sh/loyaltyforge_universal_sync/json?poll=1');
+        if (res.ok) {
+          const lines = (await res.text()).split('\n').filter(Boolean);
+          for (const line of lines) {
+            try {
+              const item = JSON.parse(line);
+              if (item?.message) handleIncomingMessage(item.message);
+            } catch {}
+          }
+        }
+      } catch {}
+    };
+
+    const pollInterval = setInterval(pollCloud, 1500);
+
+    // 3. Mobile Wakeup / Tab Focus trigger
+    const onWakeup = () => {
+      syncWithServer();
+      pollCloud();
+    };
+    window.addEventListener('visibilitychange', onWakeup);
+    window.addEventListener('focus', onWakeup);
 
     return () => {
       if (es) es.close();
+      clearInterval(pollInterval);
+      window.removeEventListener('visibilitychange', onWakeup);
+      window.removeEventListener('focus', onWakeup);
     };
   }, [activeRestaurantId, activeCustomerPhone]);
 
@@ -480,7 +518,7 @@ export function LoyaltyProvider({ children }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone: cleanPhone, restaurantId: activeRestaurantId, name })
     }).then(r => r.json()).then(data => {
-      if (data?.customers) setCustomers(data.customers);
+      if (data?.customers) setCustomers(prev => mergeCustomerRecords(prev, data.customers));
     }).catch(() => {});
 
     return existing;
@@ -576,13 +614,20 @@ export function LoyaltyProvider({ children }) {
 
     // Broadcast across cloud to mobile phones on any network (Mobile Data, Hotspot, Wi-Fi)
     try {
+      const payloadStr = JSON.stringify({
+        type: 'STAMP_AWARDED',
+        restaurantId: activeRestaurantId,
+        customer: targetUpdatedCust
+      });
+      fetch('https://ntfy.sh/loyaltyforge_universal_sync', {
+        method: 'POST',
+        headers: { 'Title': 'STAMP_AWARDED', 'Priority': 'high' },
+        body: payloadStr
+      }).catch(() => {});
       fetch(`https://ntfy.sh/loyaltyforge_room_${activeRestaurantId}`, {
         method: 'POST',
         headers: { 'Title': 'STAMP_AWARDED', 'Priority': 'high' },
-        body: JSON.stringify({
-          type: 'STAMP_AWARDED',
-          customer: targetUpdatedCust
-        })
+        body: payloadStr
       }).catch(() => {});
     } catch {}
 

@@ -117,10 +117,10 @@
     "restaurantId": "rest_002",
     "phone": "9342705016",
     "name": "Guest Customer",
-    "visits": 1,
+    "visits": 2,
     "totalSpend": 0,
-    "loyaltyPoints": 10,
-    "lastVisit": "2026-08-30T09:47:34.907Z",
+    "loyaltyPoints": 20,
+    "lastVisit": "2026-09-03T15:03:20.698Z",
     "createdAt": "2026-08-30T09:47:34.891Z",
     "vouchers": [],
     "isVip": false
