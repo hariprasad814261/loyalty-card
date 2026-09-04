@@ -793,15 +793,31 @@ h1, h2, h3, h4, h5, h6 {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.88);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   overflow-y: auto;
-  padding: 24px 16px;
+  padding: 16px 14px 32px 14px;
   box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+}
+
+.lf-modal-backdrop > .lf-card {
+  margin: auto;
+}
+
+@media (max-width: 640px) {
+  .lf-modal-backdrop {
+    padding: 12px 10px 28px 10px;
+    align-items: flex-start;
+  }
+
+  .lf-modal-backdrop > .lf-card {
+    margin: 4px auto 20px auto;
+  }
 }
 
 .lf-login-page-container {

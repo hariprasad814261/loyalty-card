@@ -311,7 +311,8 @@ function HelpGuideModal({ onClose }) {
 }
 
 function GuestCustomerPassLayout() {
-  const { activeRestaurant, setIsGuestMode } = useLoyalty();
+  const { activeRestaurant } = useLoyalty();
+  const [showStaffModal, setShowStaffModal] = useState(false);
 
   return (
     <div className="lf-app" style={{ background: '#0D0A08', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -350,15 +351,16 @@ function GuestCustomerPassLayout() {
           </div>
         </div>
 
-        {/* Discreet Owner / Admin link */}
+        {/* Staff / Admin Portal Trigger */}
         <button
           type="button"
-          onClick={() => setIsGuestMode(false)}
+          onClick={() => setShowStaffModal(true)}
           className="lf-btn-ghost"
-          style={{ fontSize: '11px', opacity: 0.6, color: '#8E8478', cursor: 'pointer', padding: '6px 10px' }}
-          title="Open LoyaltyForge Admin Suite"
+          style={{ fontSize: '11px', color: '#D4AF37', cursor: 'pointer', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '5px', borderRadius: '8px', background: 'rgba(212, 175, 55, 0.08)', border: '1px solid rgba(212, 175, 55, 0.25)' }}
+          title="Open Staff & Owner Portal"
         >
-          Staff / Admin
+          <Lock size={12} />
+          <span>Staff / Owner</span>
         </button>
       </header>
 
@@ -366,6 +368,15 @@ function GuestCustomerPassLayout() {
       <main style={{ flex: 1, padding: '20px 16px', maxWidth: '460px', margin: '0 auto', width: '100%' }}>
         <CustomerMobilePass />
       </main>
+
+      {/* Staff & Owner Modal Triggered from Header */}
+      {showStaffModal && (
+        <MerchantLoginModal
+          prefilledRestaurant={activeRestaurant}
+          onClose={() => setShowStaffModal(false)}
+          onContinueAsGuest={() => setShowStaffModal(false)}
+        />
+      )}
 
       <footer style={{
         padding: '16px',

@@ -44,6 +44,7 @@ export function MerchantLoginModal({
 
   // Hidden / Clickable PIN input ref
   const pinInputRef = useRef(null);
+  const cardRef = useRef(null);
 
   // New Shopkeeper Registration state
   const [regName, setRegName] = useState('');
@@ -54,13 +55,10 @@ export function MerchantLoginModal({
 
   const activeRest = prefilledRestaurant || restaurants.find(r => r.id === selectedRestId) || activeRestaurant || null;
 
-  // Auto-focus PIN input on mount or tab change
+  // Always reset scroll to top on tab change so user sees headers and tabs immediately
   useEffect(() => {
-    if (authMode === 'login') {
-      const timer = setTimeout(() => {
-        pinInputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timer);
+    if (cardRef.current) {
+      cardRef.current.scrollTop = 0;
     }
   }, [authMode]);
 
@@ -204,19 +202,20 @@ export function MerchantLoginModal({
       className={isStandalonePage ? "lf-login-page-container" : "lf-modal-backdrop"}
     >
       <div 
+        ref={cardRef}
         className="lf-card animate-fade-in" 
         style={{
           width: '100%',
-          maxWidth: '430px',
-          maxHeight: '92vh',
+          maxWidth: '420px',
+          maxHeight: '94vh',
           overflowY: 'auto',
           background: 'linear-gradient(180deg, #1C1714 0%, #110E0C 100%)',
           border: '1px solid rgba(212, 175, 55, 0.35)',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 30px rgba(212, 175, 55, 0.1)',
-          borderRadius: '24px',
-          padding: '24px 20px',
+          borderRadius: '22px',
+          padding: '20px 16px',
           position: 'relative',
-          margin: 'auto'
+          margin: '0 auto'
         }}
       >
         {onClose && !isStandalonePage && (
@@ -239,18 +238,18 @@ export function MerchantLoginModal({
         )}
 
         {/* Brand & Store Header */}
-        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '14px' }}>
           <div 
             style={{
-              width: '52px',
-              height: '52px',
+              width: '48px',
+              height: '48px',
               borderRadius: '50%',
               background: 'rgba(212, 175, 55, 0.12)',
               border: '2px solid rgba(212, 175, 55, 0.4)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 8px auto',
+              margin: '0 auto 6px auto',
               color: '#D4AF37'
             }}
           >
@@ -261,27 +260,27 @@ export function MerchantLoginModal({
                 style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
               />
             ) : (
-              <ShieldCheck size={28} />
+              <ShieldCheck size={26} />
             )}
           </div>
 
           <span 
             style={{
-              fontSize: '10.5px',
+              fontSize: '10px',
               fontWeight: 800,
               textTransform: 'uppercase',
               letterSpacing: '0.12em',
               color: '#D4AF37',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: '5px'
             }}
           >
-            <Lock size={12} />
-            Staff & Cashier Portal
+            <Lock size={11} />
+            Staff & Restaurant Owner Portal
           </span>
 
-          <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#FDFBF7', marginTop: '3px' }}>
+          <h2 style={{ fontSize: '17px', fontWeight: 800, color: '#FDFBF7', marginTop: '2px' }}>
             {activeRest ? activeRest.name : 'Store Partner Portal'}
           </h2>
         </div>
@@ -291,19 +290,20 @@ export function MerchantLoginModal({
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '6px',
-            background: 'rgba(0,0,0,0.45)',
-            padding: '4px',
-            borderRadius: '12px',
-            border: '1px solid rgba(255,255,255,0.08)',
-            marginBottom: '16px'
+            gap: '8px',
+            background: 'rgba(0,0,0,0.6)',
+            padding: '5px',
+            borderRadius: '14px',
+            border: '1.5px solid rgba(212, 175, 55, 0.35)',
+            marginBottom: '16px',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.4)'
           }}
         >
           <button
             type="button"
             onClick={() => { setAuthMode('login'); setError(''); }}
             className={`lf-btn ${authMode === 'login' ? 'lf-btn-gold' : 'lf-btn-ghost'}`}
-            style={{ padding: '8px', fontSize: '12px', justifyContent: 'center', borderRadius: '8px', fontWeight: 700 }}
+            style={{ padding: '9px 6px', fontSize: '12px', justifyContent: 'center', borderRadius: '10px', fontWeight: 800 }}
           >
             <KeyRound size={14} />
             <span>🔑 Owner Login</span>
@@ -313,7 +313,7 @@ export function MerchantLoginModal({
             type="button"
             onClick={() => { setAuthMode('register'); setError(''); }}
             className={`lf-btn ${authMode === 'register' ? 'lf-btn-gold' : 'lf-btn-ghost'}`}
-            style={{ padding: '8px', fontSize: '12px', justifyContent: 'center', borderRadius: '8px', fontWeight: 700 }}
+            style={{ padding: '9px 6px', fontSize: '12px', justifyContent: 'center', borderRadius: '10px', fontWeight: 800 }}
           >
             <Sparkles size={14} />
             <span>✨ Create New Shop</span>
@@ -422,7 +422,6 @@ export function MerchantLoginModal({
                     cursor: 'pointer',
                     zIndex: 2
                   }}
-                  autoFocus
                 />
 
                 {/* Visible 4 Glowing PIN Slots */}
@@ -466,9 +465,9 @@ export function MerchantLoginModal({
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '8px',
-                maxWidth: '280px',
-                margin: '0 auto 14px auto'
+                gap: '6px',
+                maxWidth: '260px',
+                margin: '0 auto 10px auto'
               }}
             >
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, '⌫'].map((k) => (
@@ -478,7 +477,6 @@ export function MerchantLoginModal({
                   onClick={() => {
                     if (k === 'C') {
                       setPin('');
-                      pinInputRef.current?.focus();
                     } else if (k === '⌫') {
                       handleKeypadPress('back');
                     } else {
@@ -487,11 +485,11 @@ export function MerchantLoginModal({
                   }}
                   className="lf-btn lf-btn-secondary"
                   style={{
-                    height: '42px',
+                    height: '38px',
                     padding: 0,
-                    fontSize: '17px',
+                    fontSize: '16px',
                     fontWeight: 700,
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -540,7 +538,6 @@ export function MerchantLoginModal({
                 placeholder="e.g. Ramesh Kumar"
                 className="lf-input"
                 style={{ padding: '9px 12px', fontSize: '13.5px' }}
-                autoFocus
               />
             </div>
 
