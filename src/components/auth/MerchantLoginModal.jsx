@@ -306,7 +306,7 @@ export function MerchantLoginModal({
             style={{ padding: '8px', fontSize: '12px', justifyContent: 'center', borderRadius: '8px', fontWeight: 700 }}
           >
             <KeyRound size={14} />
-            <span>Existing Login</span>
+            <span>🔑 Owner Login</span>
           </button>
 
           <button
@@ -316,7 +316,7 @@ export function MerchantLoginModal({
             style={{ padding: '8px', fontSize: '12px', justifyContent: 'center', borderRadius: '8px', fontWeight: 700 }}
           >
             <Sparkles size={14} />
-            <span>New Shopkeeper</span>
+            <span>✨ Create New Shop</span>
           </button>
         </div>
 
@@ -584,12 +584,12 @@ export function MerchantLoginModal({
               />
             </div>
 
-            {/* 4-Digit PIN with Auto-Generate Button */}
+            {/* 4-Digit Password / PIN with Auto-Generate Button & Security Callout */}
             <div className="lf-form-group">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <label className="lf-label" style={{ fontSize: '11px', margin: 0 }}>
                   <KeyRound size={13} style={{ display: 'inline', marginRight: '4px' }} />
-                  4-Digit Security PIN (Optional)
+                  4-Digit Security Password / PIN
                 </label>
                 <button
                   type="button"
@@ -598,7 +598,7 @@ export function MerchantLoginModal({
                   style={{ fontSize: '11px', color: '#D4AF37', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', padding: '2px 6px' }}
                 >
                   <Dices size={12} />
-                  <span>Generate PIN</span>
+                  <span>🎲 Generate PIN</span>
                 </button>
               </div>
               <input
@@ -606,10 +606,35 @@ export function MerchantLoginModal({
                 maxLength="4"
                 value={regPin}
                 onChange={(e) => setRegPin(e.target.value.replace(/\D/g, ''))}
-                placeholder="Defaults to last 4 digits of phone"
+                placeholder={regPhone.length >= 4 ? `e.g. ${regPhone.slice(-4)} (or click Generate PIN)` : 'e.g. 1234 or click Generate PIN'}
                 className="lf-input lf-input-mono"
                 style={{ padding: '9px 12px', fontSize: '14px', letterSpacing: '0.15em', textAlign: 'center', fontWeight: 700, color: '#F3E5AB' }}
               />
+
+              {/* Security & Options Callout */}
+              <div 
+                style={{
+                  marginTop: '8px',
+                  padding: '9px 12px',
+                  borderRadius: '10px',
+                  background: 'rgba(212, 175, 55, 0.08)',
+                  border: '1px solid rgba(212, 175, 55, 0.22)',
+                  fontSize: '11px',
+                  lineHeight: '1.45',
+                  color: '#D4CDC3'
+                }}
+              >
+                <div style={{ fontWeight: 700, color: '#F3E5AB', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
+                  <Lock size={11} style={{ color: '#D4AF37' }} />
+                  <span>Essential Dashboard Security:</span>
+                </div>
+                <div style={{ color: '#A89F91', fontSize: '10.5px', marginBottom: '4px' }}>
+                  This password prevents customers from accessing your cashier dashboard and stamping controls.
+                </div>
+                <div style={{ color: '#D4AF37', fontSize: '10.5px' }}>
+                  💡 <strong>3 Ways to Set:</strong> Type 4 digits, click <strong>Generate PIN</strong>, or leave blank to automatically use your phone's last 4 digits (<span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{regPhone.length >= 4 ? regPhone.slice(-4) : '••••'}</span>).
+                </div>
+              </div>
             </div>
 
             <button

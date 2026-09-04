@@ -117,10 +117,10 @@
     "restaurantId": "rest_002",
     "phone": "9342705016",
     "name": "Guest Customer",
-    "visits": 2,
+    "visits": 9,
     "totalSpend": 0,
-    "loyaltyPoints": 20,
-    "lastVisit": "2026-09-03T15:03:20.698Z",
+    "loyaltyPoints": 90,
+    "lastVisit": "2026-09-03T15:22:51.068Z",
     "createdAt": "2026-08-30T09:47:34.891Z",
     "vouchers": [],
     "isVip": false
@@ -171,5 +171,53 @@
     "vouchers": [],
     "isVip": false,
     "lastVisit": "2026-09-03T14:29:28.448Z"
+  },
+  {
+    "id": "cust_1788448908122",
+    "restaurantId": "rest_002",
+    "phone": "9876543210",
+    "name": "Guest Customer",
+    "visits": 10,
+    "totalSpend": 0,
+    "loyaltyPoints": 100,
+    "lastVisit": "2026-09-03T15:23:22.649Z",
+    "createdAt": "2026-09-03T15:21:48.122Z",
+    "vouchers": [
+      {
+        "code": "BEE-100-BF8E",
+        "title": "Free Chettinad Biryani + ₹200 Voucher",
+        "amount": 100,
+        "status": "unredeemed",
+        "earnedAt": "2026-09-03T15:23:22.648Z",
+        "milestoneVisit": 10
+      }
+    ],
+    "isVip": false
+  },
+  {
+    "id": "cust_1788449061183",
+    "restaurantId": "rest_burmix",
+    "phone": "9876543210",
+    "name": "Guest Customer",
+    "visits": 2,
+    "totalSpend": 0,
+    "loyaltyPoints": 20,
+    "lastVisit": "2026-09-03T15:24:25.234Z",
+    "createdAt": "2026-09-03T15:24:21.183Z",
+    "vouchers": [],
+    "isVip": false
+  },
+  {
+    "id": "cust_1788495950657",
+    "restaurantId": "rest_burmix_street_fo_5209",
+    "phone": "9876543210",
+    "name": "Guest Customer",
+    "visits": 2,
+    "totalSpend": 0,
+    "loyaltyPoints": 20,
+    "lastVisit": "2026-09-04T04:26:31.741Z",
+    "createdAt": "2026-09-04T04:25:50.657Z",
+    "vouchers": [],
+    "isVip": false
   }
 ]
