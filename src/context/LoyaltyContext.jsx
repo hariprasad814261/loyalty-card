@@ -459,8 +459,38 @@ export function LoyaltyProvider({ children }) {
     setRouteMode('demo');
   };
 
-  // Super-Admin Onboarding: Add new restaurant with dedicated owner phone & PIN
+  // Super-Admin / Merchant Onboarding: Add new restaurant with dedicated owner phone & PIN (Strict Uniqueness)
   const onboardNewRestaurant = (customData = {}) => {
+    const cleanPhone = (customData.ownerPhone || '').replace(/\D/g, '');
+    const cleanName = (customData.name || '').trim().toLowerCase();
+
+    // 1. Strict Duplicate Mobile Number Check: An owner cannot create multiple accounts with the same number
+    if (cleanPhone.length >= 10) {
+      const existingOwner = restaurants.find(r => {
+        const op = (r.owner?.phone || '').replace(/\D/g, '');
+        return op.length >= 10 && op.endsWith(cleanPhone.slice(-10));
+      });
+      if (existingOwner) {
+        return {
+          success: false,
+          error: `Mobile number +91 ${cleanPhone.slice(-10)} is already registered to "${existingOwner.name}". Please log in with your 4-digit PIN instead of creating a duplicate account.`,
+          existingRestaurant: existingOwner
+        };
+      }
+    }
+
+    // 2. Strict Duplicate Shop Name Check: Prevent identical restaurant names
+    if (cleanName) {
+      const existingName = restaurants.find(r => (r.name || '').trim().toLowerCase() === cleanName);
+      if (existingName) {
+        return {
+          success: false,
+          error: `A restaurant named "${existingName.name}" already exists. Please choose a unique name or log in with your owner PIN.`,
+          existingRestaurant: existingName
+        };
+      }
+    }
+
     const newId = customData.id || `rest_${(customData.name || 'shop').toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 16)}_${Date.now().toString().slice(-4)}`;
     const newRest = {
       ...DEFAULT_RESTAURANT,
@@ -470,7 +500,7 @@ export function LoyaltyProvider({ children }) {
       category: customData.category || 'Restaurant & Dining',
       owner: {
         name: customData.ownerName || 'Store Manager',
-        phone: (customData.ownerPhone || '').replace(/\D/g, ''),
+        phone: cleanPhone,
         pin: customData.ownerPin || '1234'
       },
       ...customData
@@ -483,7 +513,7 @@ export function LoyaltyProvider({ children }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ restaurants: updated })
     }).catch(() => {});
-    return newRest;
+    return { success: true, restaurant: newRest };
   };
 
   // Add new restaurant (Card Studio fallback)

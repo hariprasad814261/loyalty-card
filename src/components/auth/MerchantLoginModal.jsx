@@ -22,7 +22,8 @@ export function MerchantLoginModal({
   prefilledRestaurant = null, 
   onClose = null, 
   isStandalonePage = false,
-  onContinueAsGuest = null
+  onContinueAsGuest = null,
+  defaultAuthMode = 'login'
 }) {
   const { 
     verifyMerchantPin, 
@@ -33,7 +34,7 @@ export function MerchantLoginModal({
   } = useLoyalty();
 
   // Mode: 'login' (existing owner) vs 'register' (first-time shopkeeper)
-  const [authMode, setAuthMode] = useState('login');
+  const [authMode, setAuthMode] = useState(defaultAuthMode || 'login');
 
   // Login form state
   const [phone, setPhone] = useState(prefilledPhone);
@@ -148,7 +149,7 @@ export function MerchantLoginModal({
 
     setTimeout(() => {
       try {
-        const newShop = onboardNewRestaurant({
+        const res = onboardNewRestaurant({
           name: regShopName.trim(),
           tagline: 'Artisanal Culinary Craft & Dining',
           ownerName: regName.trim(),
@@ -156,9 +157,16 @@ export function MerchantLoginModal({
           ownerPin: finalPin
         });
 
+        if (!res || !res.success || res.error) {
+          setIsLoading(false);
+          setError(res?.error || 'Registration failed. A duplicate account may already exist.');
+          return;
+        }
+
+        const newShop = res.restaurant;
         // Automatically verify and log in
         verifyMerchantPin(newShop.id, finalPin);
-        setRegSuccessMessage(`Shop "${newShop.name}" registered! Your PIN is ${finalPin}`);
+        setRegSuccessMessage(`🎉 Shop "${newShop.name}" registered! Your master PIN is ${finalPin}`);
         setIsLoading(false);
 
         setTimeout(() => {
@@ -325,9 +333,9 @@ export function MerchantLoginModal({
           <div 
             style={{
               display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '9px 12px',
+              flexDirection: 'column',
+              gap: '6px',
+              padding: '10px 12px',
               borderRadius: '10px',
               background: 'rgba(239, 68, 68, 0.12)',
               border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -336,8 +344,35 @@ export function MerchantLoginModal({
               marginBottom: '12px'
             }}
           >
-            <AlertCircle size={15} style={{ flexShrink: 0 }} />
-            <span>{error}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertCircle size={15} style={{ flexShrink: 0 }} />
+              <span>{error}</span>
+            </div>
+            {authMode === 'register' && (error.toLowerCase().includes('already') || error.toLowerCase().includes('duplicate') || error.toLowerCase().includes('exists')) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('login');
+                  setPhone(regPhone);
+                  setError('');
+                }}
+                className="lf-btn lf-btn-secondary"
+                style={{
+                  alignSelf: 'flex-start',
+                  padding: '5px 10px',
+                  fontSize: '11px',
+                  marginTop: '4px',
+                  color: '#F3E5AB',
+                  borderColor: 'rgba(212,175,55,0.4)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                <KeyRound size={12} />
+                <span>👉 Switch to Owner Login</span>
+              </button>
+            )}
           </div>
         )}
 

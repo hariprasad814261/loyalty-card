@@ -42,20 +42,6 @@ function NavigationHeader({ onOpenHelp }) {
   } = useLoyalty();
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newRestName, setNewRestName] = useState('');
-  const [newRestTagline, setNewRestTagline] = useState('');
-
-  const handleAddRestaurant = (e) => {
-    e.preventDefault();
-    if (!newRestName) return;
-    addNewRestaurant({
-      name: newRestName,
-      tagline: newRestTagline || 'Authentic Culinary Craft'
-    });
-    setNewRestName('');
-    setNewRestTagline('');
-    setShowAddModal(false);
-  };
 
   const navItems = [
     { id: 'studio', label: 'Card Studio', icon: Palette },
@@ -188,71 +174,12 @@ function NavigationHeader({ onOpenHelp }) {
         </div>
       </header>
 
-      {/* Add Restaurant Modal */}
+      {/* Unified Add Restaurant / Merchant Registration Modal */}
       {showAddModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 100,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '16px',
-          background: 'rgba(0,0,0,0.85)',
-          backdropFilter: 'blur(8px)'
-        }}>
-          <div className="lf-card" style={{ maxWidth: '440px', width: '100%', padding: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '14px', marginBottom: '18px' }}>
-              <h3 style={{ fontSize: '17px', color: '#FDFBF7' }}>Onboard New Restaurant</h3>
-              <button
-                type="button"
-                onClick={() => setShowAddModal(false)}
-                className="lf-btn-ghost"
-                style={{ cursor: 'pointer' }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddRestaurant} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div className="lf-form-group">
-                <label className="lf-label">Restaurant Name</label>
-                <input
-                  type="text"
-                  required
-                  value={newRestName}
-                  onChange={(e) => setNewRestName(e.target.value)}
-                  placeholder="e.g. Copper Chimney Fine Dining"
-                  className="lf-input"
-                />
-              </div>
-
-              <div className="lf-form-group">
-                <label className="lf-label">Cuisine & Tagline</label>
-                <input
-                  type="text"
-                  value={newRestTagline}
-                  onChange={(e) => setNewRestTagline(e.target.value)}
-                  placeholder="e.g. Heritage Awadhi & Tandoor"
-                  className="lf-input"
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="lf-btn lf-btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="lf-btn lf-btn-gold">
-                  Create Pass
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <MerchantLoginModal
+          defaultAuthMode="register"
+          onClose={() => setShowAddModal(false)}
+        />
       )}
     </>
   );

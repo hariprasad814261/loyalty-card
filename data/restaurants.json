@@ -244,5 +244,177 @@
     "ownerName": "Ramesh Kumar",
     "ownerPhone": "9342705016",
     "ownerPin": "3052"
+  },
+  {
+    "id": "rest_new_test_shop_9253",
+    "name": "New Test Shop",
+    "tagline": "Artisanal Culinary Craft & Dining",
+    "category": "Restaurant & Dining",
+    "currency": "₹",
+    "logoUrl": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=150&auto=format&fit=crop&q=80",
+    "bannerUrl": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&auto=format&fit=crop&q=80",
+    "theme": {
+      "preset": "espresso_gold",
+      "bgColor": "#14100E",
+      "cardBgColor": "#221A15",
+      "textColor": "#FDFBF7",
+      "accentColor": "#D4AF37",
+      "stampActiveColor": "#E5C07B",
+      "stampIcon": "cup"
+    },
+    "program": {
+      "type": "stamps",
+      "totalStamps": 5,
+      "rewardTitle": "₹100 Instant Discount on Bill",
+      "rewardDescription": "Collect 5 stamps to receive ₹100 flat discount on your coffee & meal order.",
+      "vipSpendThreshold": 3000,
+      "vipReward": "VIP Card: Free Chef Special Dessert on every visit",
+      "pointsPerCurrency": 1,
+      "currencyPerPoint": 0.05
+    },
+    "links": {
+      "phone": "+91 98765 43210",
+      "whatsapp": "+919876543210",
+      "googleReviewUrl": "https://maps.google.com/?q=Cafe+Aroma",
+      "instagramHandle": "@cafearomaroasters",
+      "address": "12, 100 Feet Rd, Indiranagar, Bengaluru, Karnataka 560038"
+    },
+    "owner": {
+      "name": "Ramesh Kumar",
+      "phone": "9342705016",
+      "pin": "1234"
+    },
+    "ownerName": "Ramesh Kumar",
+    "ownerPhone": "9342705016",
+    "ownerPin": "1234"
+  },
+  {
+    "id": "rest_new_test_shop_2839",
+    "name": "New Test Shop",
+    "tagline": "Artisanal Culinary Craft & Dining",
+    "category": "Restaurant & Dining",
+    "currency": "₹",
+    "logoUrl": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=150&auto=format&fit=crop&q=80",
+    "bannerUrl": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&auto=format&fit=crop&q=80",
+    "theme": {
+      "preset": "espresso_gold",
+      "bgColor": "#14100E",
+      "cardBgColor": "#221A15",
+      "textColor": "#FDFBF7",
+      "accentColor": "#D4AF37",
+      "stampActiveColor": "#E5C07B",
+      "stampIcon": "cup"
+    },
+    "program": {
+      "type": "stamps",
+      "totalStamps": 5,
+      "rewardTitle": "₹100 Instant Discount on Bill",
+      "rewardDescription": "Collect 5 stamps to receive ₹100 flat discount on your coffee & meal order.",
+      "vipSpendThreshold": 3000,
+      "vipReward": "VIP Card: Free Chef Special Dessert on every visit",
+      "pointsPerCurrency": 1,
+      "currencyPerPoint": 0.05
+    },
+    "links": {
+      "phone": "+91 98765 43210",
+      "whatsapp": "+919876543210",
+      "googleReviewUrl": "https://maps.google.com/?q=Cafe+Aroma",
+      "instagramHandle": "@cafearomaroasters",
+      "address": "12, 100 Feet Rd, Indiranagar, Bengaluru, Karnataka 560038"
+    },
+    "owner": {
+      "name": "Ramesh Kumar",
+      "phone": "9342705016",
+      "pin": "1234"
+    },
+    "ownerName": "Ramesh Kumar",
+    "ownerPhone": "9342705016",
+    "ownerPin": "1234"
+  },
+  {
+    "id": "rest_new_test_shop_2_4808",
+    "name": "New Test Shop 2",
+    "tagline": "Artisanal Culinary Craft & Dining",
+    "category": "Restaurant & Dining",
+    "currency": "₹",
+    "logoUrl": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=150&auto=format&fit=crop&q=80",
+    "bannerUrl": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&auto=format&fit=crop&q=80",
+    "theme": {
+      "preset": "espresso_gold",
+      "bgColor": "#14100E",
+      "cardBgColor": "#221A15",
+      "textColor": "#FDFBF7",
+      "accentColor": "#D4AF37",
+      "stampActiveColor": "#E5C07B",
+      "stampIcon": "cup"
+    },
+    "program": {
+      "type": "stamps",
+      "totalStamps": 5,
+      "rewardTitle": "₹100 Instant Discount on Bill",
+      "rewardDescription": "Collect 5 stamps to receive ₹100 flat discount on your coffee & meal order.",
+      "vipSpendThreshold": 3000,
+      "vipReward": "VIP Card: Free Chef Special Dessert on every visit",
+      "pointsPerCurrency": 1,
+      "currencyPerPoint": 0.05
+    },
+    "links": {
+      "phone": "+91 98765 43210",
+      "whatsapp": "+919876543210",
+      "googleReviewUrl": "https://maps.google.com/?q=Cafe+Aroma",
+      "instagramHandle": "@cafearomaroasters",
+      "address": "12, 100 Feet Rd, Indiranagar, Bengaluru, Karnataka 560038"
+    },
+    "owner": {
+      "name": "Ramesh Kumar",
+      "phone": "9342705016",
+      "pin": "1234"
+    },
+    "ownerName": "Ramesh Kumar",
+    "ownerPhone": "9342705016",
+    "ownerPin": "1234"
+  },
+  {
+    "id": "rest_new_test_shop_5237",
+    "name": "New Test Shop",
+    "tagline": "Authentic Handcrafted Flavors",
+    "category": "Restaurant & Dining",
+    "currency": "₹",
+    "logoUrl": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=150&auto=format&fit=crop&q=80",
+    "bannerUrl": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&auto=format&fit=crop&q=80",
+    "theme": {
+      "preset": "espresso_gold",
+      "bgColor": "#14100E",
+      "cardBgColor": "#221A15",
+      "textColor": "#FDFBF7",
+      "accentColor": "#D4AF37",
+      "stampActiveColor": "#E5C07B",
+      "stampIcon": "cup"
+    },
+    "program": {
+      "type": "stamps",
+      "totalStamps": 5,
+      "rewardTitle": "₹100 Instant Discount on Bill",
+      "rewardDescription": "Collect 5 stamps to receive ₹100 flat discount on your coffee & meal order.",
+      "vipSpendThreshold": 3000,
+      "vipReward": "VIP Card: Free Chef Special Dessert on every visit",
+      "pointsPerCurrency": 1,
+      "currencyPerPoint": 0.05
+    },
+    "links": {
+      "phone": "+91 98765 43210",
+      "whatsapp": "+919876543210",
+      "googleReviewUrl": "https://maps.google.com/?q=Cafe+Aroma",
+      "instagramHandle": "@cafearomaroasters",
+      "address": "12, 100 Feet Rd, Indiranagar, Bengaluru, Karnataka 560038"
+    },
+    "owner": {
+      "name": "Store Manager",
+      "phone": "9342705016",
+      "pin": "1234"
+    },
+    "ownerName": "Store Manager",
+    "ownerPhone": "9342705016",
+    "ownerPin": "1234"
   }
 ]

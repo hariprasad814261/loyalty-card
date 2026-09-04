@@ -42,6 +42,7 @@ export function SuperAdminDashboard() {
   const [newOwnerName, setNewOwnerName] = useState('');
   const [newOwnerPhone, setNewOwnerPhone] = useState('');
   const [newOwnerPin, setNewOwnerPin] = useState('1234');
+  const [onboardError, setOnboardError] = useState('');
 
   const [copiedShopId, setCopiedShopId] = useState(null);
   const [copiedType, setCopiedType] = useState(null);
@@ -62,7 +63,7 @@ export function SuperAdminDashboard() {
     e.preventDefault();
     if (!newShopName || !newOwnerPhone) return;
 
-    onboardNewRestaurant({
+    const res = onboardNewRestaurant({
       name: newShopName,
       tagline: newShopTagline || 'Authentic Handcrafted Flavors',
       category: newShopCategory,
@@ -71,11 +72,17 @@ export function SuperAdminDashboard() {
       ownerPin: newOwnerPin || '1234'
     });
 
+    if (!res || !res.success || res.error) {
+      setOnboardError(res?.error || 'Registration failed. A duplicate account may already exist.');
+      return;
+    }
+
     setNewShopName('');
     setNewShopTagline('');
     setNewOwnerName('');
     setNewOwnerPhone('');
     setNewOwnerPin('1234');
+    setOnboardError('');
     setShowOnboardModal(false);
   };
 
@@ -271,6 +278,24 @@ export function SuperAdminDashboard() {
             </p>
 
             <form onSubmit={handleCreateRestaurant} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {onboardError && (
+                <div 
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#F87171',
+                    fontSize: '12px'
+                  }}
+                >
+                  <span>⚠️ {onboardError}</span>
+                </div>
+              )}
+
               <div className="lf-form-group">
                 <label className="lf-label">Restaurant / Shop Name *</label>
                 <input
