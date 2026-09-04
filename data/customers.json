@@ -177,10 +177,10 @@
     "restaurantId": "rest_002",
     "phone": "9876543210",
     "name": "Guest Customer",
-    "visits": 10,
+    "visits": 11,
     "totalSpend": 0,
-    "loyaltyPoints": 100,
-    "lastVisit": "2026-09-03T15:23:22.649Z",
+    "loyaltyPoints": 110,
+    "lastVisit": "2026-09-04T05:18:19.369Z",
     "createdAt": "2026-09-03T15:21:48.122Z",
     "vouchers": [
       {
@@ -219,5 +219,17 @@
     "createdAt": "2026-09-04T04:25:50.657Z",
     "vouchers": [],
     "isVip": false
+  },
+  {
+    "id": "cust_1788499464661",
+    "restaurantId": "rest_thasif_biryani_7723",
+    "phone": "7904635944",
+    "name": "Guest Customer",
+    "visits": 0,
+    "totalSpend": 0,
+    "loyaltyPoints": 0,
+    "lastVisit": "2026-09-04T05:24:24.661Z",
+    "createdAt": "2026-09-04T05:24:24.661Z",
+    "vouchers": []
   }
 ]
