@@ -537,6 +537,40 @@ export default function CustomerMobilePass() {
         )}
       </div>
 
+      {/* Staff & Owner Portal Link */}
+      <div style={{ textAlign: 'center', padding: '8px 0 16px 0' }}>
+        <button
+          type="button"
+          onClick={() => setShowMerchantAuthModal(true)}
+          className="lf-btn-ghost"
+          style={{
+            fontSize: '11px',
+            color: '#8E8478',
+            padding: '6px 14px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            cursor: 'pointer',
+            borderRadius: '8px',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.08)'
+          }}
+        >
+          <Lock size={12} style={{ color: '#D4AF37' }} />
+          <span>Staff & Restaurant Owner Portal</span>
+        </button>
+      </div>
+
+      {/* Staff & Owner Authentication / Registration Modal */}
+      {showMerchantAuthModal && (
+        <MerchantLoginModal
+          prefilledPhone={inputPhone || cleanGuestPhone}
+          prefilledRestaurant={activeRestaurant}
+          onClose={() => setShowMerchantAuthModal(false)}
+          onContinueAsGuest={() => setShowMerchantAuthModal(false)}
+        />
+      )}
+
     </div>
   );
 }
