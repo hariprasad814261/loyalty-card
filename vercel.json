@@ -1,9 +1,33 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "vite",
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+  "routes": [
+    {
+      "src": "/api/loyalty/state",
+      "dest": "/api/loyalty/state.js"
+    },
+    {
+      "src": "/api/loyalty/stamp",
+      "dest": "/api/loyalty/stamp.js"
+    },
+    {
+      "src": "/api/loyalty/register",
+      "dest": "/api/loyalty/register.js"
+    },
+    {
+      "src": "/api/loyalty/restaurants",
+      "dest": "/api/loyalty/restaurants.js"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1.js"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
   ]
 }
