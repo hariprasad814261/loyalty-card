@@ -50,7 +50,7 @@ export function MerchantLoginModal({
   // New Shopkeeper Registration state
   const [regName, setRegName] = useState('');
   const [regPhone, setRegPhone] = useState(prefilledPhone || '');
-  const [regShopName, setRegShopName] = useState(activeRestaurant?.name || '');
+  const [regShopName, setRegShopName] = useState('');
   const [regPin, setRegPin] = useState('');
   const [regSuccessMessage, setRegSuccessMessage] = useState('');
 
@@ -261,12 +261,14 @@ export function MerchantLoginModal({
               color: '#D4AF37'
             }}
           >
-            {activeRest?.logoUrl ? (
+            {authMode === 'login' && activeRest?.logoUrl ? (
               <img 
                 src={activeRest.logoUrl} 
                 alt="logo" 
                 style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
               />
+            ) : authMode === 'register' ? (
+              <Store size={24} style={{ color: '#D4AF37' }} />
             ) : (
               <ShieldCheck size={26} />
             )}
@@ -284,12 +286,23 @@ export function MerchantLoginModal({
               gap: '5px'
             }}
           >
-            <Lock size={11} />
-            Staff & Restaurant Owner Portal
+            {authMode === 'register' ? (
+              <>
+                <Sparkles size={11} />
+                New Restaurant Onboarding
+              </>
+            ) : (
+              <>
+                <Lock size={11} />
+                Staff & Restaurant Owner Portal
+              </>
+            )}
           </span>
 
           <h2 style={{ fontSize: '17px', fontWeight: 800, color: '#FDFBF7', marginTop: '2px' }}>
-            {activeRest ? activeRest.name : 'Store Partner Portal'}
+            {authMode === 'register' 
+              ? (regShopName.trim() || 'Create New Restaurant')
+              : (activeRest ? activeRest.name : 'Store Partner Portal')}
           </h2>
         </div>
 

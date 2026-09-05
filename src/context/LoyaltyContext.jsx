@@ -495,24 +495,60 @@ export function LoyaltyProvider({ children }) {
     const newRest = {
       ...DEFAULT_RESTAURANT,
       id: newId,
-      name: customData.name || 'New Restaurant',
-      tagline: customData.tagline || 'Artisanal Culinary Craft',
+      name: (customData.name || 'New Restaurant').trim(),
+      tagline: customData.tagline || 'Artisanal Culinary Craft & Dining',
       category: customData.category || 'Restaurant & Dining',
+      logoUrl: customData.logoUrl || null,
+      bannerUrl: customData.bannerUrl || null,
       owner: {
         name: customData.ownerName || 'Store Manager',
         phone: cleanPhone,
         pin: customData.ownerPin || '1234'
       },
+      theme: {
+        preset: "royal_gold",
+        bgColor: "#1A1512",
+        cardBgColor: "#261F1A",
+        textColor: "#FAF7F2",
+        accentColor: "#D4AF37",
+        stampActiveColor: "#F59E0B",
+        stampIcon: customData.stampIcon || "star"
+      },
+      program: {
+        type: "stamps",
+        totalStamps: 5,
+        rewardTitle: "₹100 Instant Discount on Bill",
+        rewardDescription: `Earn ₹100 instant reward on your 5th visit to ${(customData.name || 'our restaurant').trim()}!`,
+        vipSpendThreshold: 3000,
+        vipReward: "VIP Gold Member: Free Chef Special treat on every visit",
+        pointsPerCurrency: 1,
+        currencyPerPoint: 0.05
+      },
+      links: {
+        phone: cleanPhone ? `+91 ${cleanPhone}` : '',
+        whatsapp: cleanPhone ? `+91${cleanPhone}` : '',
+        googleReviewUrl: '',
+        instagramHandle: '',
+        address: ''
+      },
       ...customData
     };
-    const updated = [...restaurants, newRest];
+
+    // Prepend newly created restaurant to the top of the list so it is immediately prominent
+    const updated = [newRest, ...restaurants.filter(r => r.id !== newId)];
     setRestaurants(updated);
     setActiveRestaurantId(newId);
+
+    try {
+      localStorage.setItem('loyalty_restaurants', JSON.stringify(updated));
+    } catch {}
+
     fetch('/api/loyalty/restaurants', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ restaurants: updated })
     }).catch(() => {});
+
     return { success: true, restaurant: newRest };
   };
 
