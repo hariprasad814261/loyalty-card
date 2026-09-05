@@ -186,6 +186,33 @@ function NavigationHeader({ onOpenHelp }) {
 }
 
 function HelpGuideModal({ onClose }) {
+  const sopSteps = [
+    {
+      title: "Card Studio (Design & Program Setup)",
+      desc: "Customize store branding, choose luxury color themes, set reward milestones (e.g., 5 stamps = ₹100 flat discount), and link Google Review / Instagram pages."
+    },
+    {
+      title: "Table & Counter Standees (Print & Deploy)",
+      desc: "Download high-resolution 300 DPI vector PDF/PNG standees formatted for A5/A6 acrylic table tents. Place them on all dining tables and billing counters."
+    },
+    {
+      title: "Guest Self-Check-in (Zero-Friction Scan)",
+      desc: "Customers point their smartphone camera at the table QR code. Entering their 10-digit mobile number once instantly loads their digital VIP loyalty pass without downloading any app."
+    },
+    {
+      title: "Cashier Counter Stamping (3-Second Flow)",
+      desc: "During billing, the cashier enters the guest's mobile number on the Live POS Terminal and taps '+1 Stamp Only' (or enters the bill amount for automatic point calculation)."
+    },
+    {
+      title: "Milestone Reward Unlocking & Redemption",
+      desc: "When milestone visits are reached (e.g., 5th visit), a unique reward voucher code automatically unlocks on the customer's phone pass. The cashier clicks 'Redeem' to apply the discount."
+    },
+    {
+      title: "Automated WhatsApp Retention CRM",
+      desc: "Access the Retention Hub to view VIP diners, visit histories, and dispatch 1-click pre-formatted personalized WhatsApp invitations to guests who are 1 stamp away from a reward."
+    }
+  ];
+
   return (
     <div style={{
       position: 'fixed',
@@ -194,44 +221,119 @@ function HelpGuideModal({ onClose }) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px',
+      padding: '16px',
       background: 'rgba(0,0,0,0.85)',
       backdropFilter: 'blur(10px)'
     }}>
-      <div className="lf-card" style={{ maxWidth: '640px', width: '100%', maxHeight: '85vh', overflowY: 'auto', padding: '28px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '16px', marginBottom: '20px' }}>
+      <div className="lf-card" style={{ maxWidth: '680px', width: '100%', maxHeight: '88vh', overflowY: 'auto', padding: '24px 26px' }}>
+        
+        {/* Modal Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '14px', marginBottom: '18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Sparkles size={20} style={{ color: '#D4AF37' }} />
-            <h3 style={{ fontSize: '18px', color: '#FDFBF7' }}>Digital Loyalty Platform Operating Manual</h3>
+            <div>
+              <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#FDFBF7', margin: 0 }}>Standard Operating Procedure (SOP) Manual</h3>
+              <span style={{ fontSize: '11px', color: '#8E8478' }}>End-to-End System Operational Playbook</span>
+            </div>
           </div>
-          <button type="button" onClick={onClose} className="lf-btn-ghost" style={{ cursor: 'pointer' }}>
+          <button type="button" onClick={onClose} className="lf-btn-ghost" style={{ cursor: 'pointer', padding: '4px' }}>
             <X size={18} />
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', color: '#D4CDC3', fontSize: '13px', lineHeight: '1.6' }}>
-          <div style={{ padding: '14px', borderRadius: '12px', background: 'rgba(212, 175, 55, 0.08)', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#F3E5AB' }}>
-            👑 <b>No App Required For Guests</b>: Works in any mobile browser. All customer visits, stamps, spend, and points are securely linked to their 10-digit mobile number.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', color: '#D4CDC3', fontSize: '13px', lineHeight: '1.55' }}>
+          
+          {/* Core Principle Banner */}
+          <div style={{ padding: '12px 14px', borderRadius: '12px', background: 'rgba(212, 175, 55, 0.08)', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#F3E5AB', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+            <Crown size={16} style={{ color: '#D4AF37', flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <strong style={{ color: '#FAF7F2' }}>Core Principle — 100% Zero Friction</strong>: Guests never install an app or remember passwords. All stamps, points, and rewards permanently sync to their 10-digit mobile number across any device.
+            </div>
           </div>
 
+          {/* Operational Workflow Steps */}
           <div>
-            <h4 style={{ color: '#FDFBF7', fontSize: '14px', marginBottom: '8px' }}>End-to-End System Journey:</h4>
-            <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <li><b>1. Card Studio</b>: Choose luxury warm themes, customize stamp count (5, 8, 10), and view pixel-perfect Apple & Google Wallet simulators with 3D flip.</li>
-              <li><b>2. Standee Generator</b>: Download ready-to-print A5/A6 acrylic standees with high-resolution vector QR codes for dining tables.</li>
-              <li><b>3. Guest Check-In</b>: Guest scans table QR with camera, enters mobile number once, and pass loads instantly.</li>
-              <li><b>4. Cashier Stamping</b>: Cashier looks up phone number or scans pass, then clicks <code>+1 Stamp</code> or enters bill amount.</li>
-              <li><b>5. Reward Unlocked</b>: Upon 5th visit, a ₹100 reward voucher unlocks automatically for the cashier to redeem.</li>
-              <li><b>6. Retention CRM</b>: Dispatch 1-click personalized WhatsApp invitations to inactive guests and 1-stamp-away customers.</li>
-            </ol>
+            <h4 style={{ color: '#D4AF37', fontSize: '13.5px', fontWeight: 700, marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              6-Step Operational Lifecycle:
+            </h4>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {sopSteps.map((step, idx) => (
+                <div 
+                  key={idx} 
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.06)'
+                  }}
+                >
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    background: 'rgba(212, 175, 55, 0.15)',
+                    border: '1px solid rgba(212, 175, 55, 0.4)',
+                    color: '#F3E5AB',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    fontFamily: 'var(--font-mono)',
+                    flexShrink: 0,
+                    marginTop: '1px'
+                  }}>
+                    {idx + 1}
+                  </div>
+                  <div>
+                    <strong style={{ color: '#FDFBF7', fontSize: '12.5px', display: 'block', marginBottom: '2px' }}>
+                      {step.title}
+                    </strong>
+                    <span style={{ fontSize: '12px', color: '#B8AEA2', lineHeight: '1.45' }}>
+                      {step.desc}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
+
+          {/* Access Credentials & Portals Quick Reference */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px', marginTop: '4px' }}>
+            <div style={{ padding: '10px 12px', borderRadius: '10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#F3E5AB', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Lock size={12} style={{ color: '#D4AF37' }} />
+                <span>Store Owner & Cashier Login</span>
+              </div>
+              <p style={{ fontSize: '11px', color: '#8E8478', margin: 0 }}>
+                Click <b>Merchant Login</b> or <b>Staff Portal</b>. Enter registered owner mobile number + 4-digit PIN to access store-isolated POS stamping terminal.
+              </p>
+            </div>
+
+            <div style={{ padding: '10px 12px', borderRadius: '10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#F3E5AB', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Crown size={12} style={{ color: '#F59E0B' }} />
+                <span>Super-Admin Master Access</span>
+              </div>
+              <p style={{ fontSize: '11px', color: '#8E8478', margin: 0 }}>
+                Master Control Mode is protected by passphrase (default: <code style={{ color: '#F59E0B', background: 'rgba(245,158,11,0.1)', padding: '1px 4px', borderRadius: '4px' }}>admin2026</code>) to manage all restaurant clients, reset PINs, and onboard shops.
+              </p>
+            </div>
+          </div>
+
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
-          <button type="button" onClick={onClose} className="lf-btn lf-btn-gold">
-            Return to Studio
+        {/* Action Button */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '18px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <button type="button" onClick={onClose} className="lf-btn lf-btn-gold" style={{ padding: '8px 20px', fontSize: '12.5px' }}>
+            Got it • Return to Dashboard
           </button>
         </div>
+
       </div>
     </div>
   );
