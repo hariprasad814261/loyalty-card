@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLoyalty, normalizePhone } from '../../context/LoyaltyContext';
 import { 
   Scan, 
@@ -17,12 +17,12 @@ import {
 export default function CashierScanner() {
   const { 
     activeRestaurant, 
-    customers, 
-    activeCustomer, 
+    customers = [], 
     activeCustomerPhone, 
     registerOrGetCustomer, 
     addStampToCustomer, 
-    redeemVoucher 
+    redeemVoucher,
+    triggerImmediateSync 
   } = useLoyalty();
 
   const [searchPhone, setSearchPhone] = useState(normalizePhone(activeCustomerPhone) || '9876543210');
@@ -33,20 +33,24 @@ export default function CashierScanner() {
   const totalStamps = program.totalStamps || 5;
 
   const cleanPhone = normalizePhone(searchPhone);
-  const currentCustomer = customers.find(c => normalizePhone(c.phone) === cleanPhone && c.restaurantId === activeRestaurant?.id) || {
-    phone: cleanPhone,
-    name: 'Guest Customer',
-    restaurantId: activeRestaurant?.id,
-    visits: 0,
-    totalSpend: 0,
-    loyaltyPoints: 0,
-    vouchers: []
-  };
+  const currentCustomer = customers.find(c => normalizePhone(c.phone) === cleanPhone && (c.restaurantId === activeRestaurant?.id || !c.restaurantId)) ||
+    customers.find(c => normalizePhone(c.phone) === cleanPhone) || {
+      phone: cleanPhone,
+      name: `Guest ${cleanPhone ? cleanPhone.slice(-4) : 'Customer'}`,
+      restaurantId: activeRestaurant?.id,
+      visits: 0,
+      totalSpend: 0,
+      loyaltyPoints: 0,
+      vouchers: []
+    };
 
   const handleLookup = (phoneToUse) => {
     const target = normalizePhone(phoneToUse || searchPhone);
     if (target.length >= 10) {
       registerOrGetCustomer(target);
+      if (typeof triggerImmediateSync === 'function') {
+        triggerImmediateSync(target);
+      }
     }
   };
 
@@ -77,7 +81,7 @@ export default function CashierScanner() {
     setTimeout(() => setLastActionMessage(null), 4000);
   };
 
-  const visits = currentCustomer?.visits || 0;
+  const visits = Number(currentCustomer?.visits) || 0;
   const stampsInCycle = visits % totalStamps;
   const isRewardReady = visits > 0 && stampsInCycle === 0;
 
@@ -136,7 +140,7 @@ export default function CashierScanner() {
                   type="tel"
                   maxLength="10"
                   value={searchPhone}
-                  onChange={(e) => setSearchPhone(e.target.value)}
+                  onChange={(e) => setSearchPhone(e.target.value.replace(/\D/g, ''))}
                   onBlur={() => handleLookup()}
                   placeholder="Enter 10 digits"
                   className="lf-input lf-input-mono"
@@ -152,7 +156,7 @@ export default function CashierScanner() {
               </div>
             </div>
 
-            {/* Quick Demo Customer Selector Chips */}
+            {/* Quick Recent Guest Selector Chips */}
             <div>
               <span className="lf-label" style={{ marginBottom: '8px', display: 'block' }}>Recent Guest Records</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -209,14 +213,14 @@ export default function CashierScanner() {
               <Award size={18} className="lf-card-title-icon" />
               <span>Customer Loyalty Profile</span>
             </div>
-            {activeCustomer?.isVip && (
+            {currentCustomer?.isVip && (
               <span className="lf-badge lf-badge-gold">VIP Guest</span>
             )}
           </div>
 
           <div className="lf-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             
-            {activeCustomer ? (
+            {currentCustomer ? (
               <>
                 {/* Stats Summary */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
@@ -232,7 +236,7 @@ export default function CashierScanner() {
 
                   <div style={{ padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
                     <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: '#8E8478', display: 'block' }}>POINTS</span>
-                    <span style={{ fontSize: '18px', fontWeight: 900, fontFamily: 'var(--font-mono)', color: '#34D399' }}>{activeCustomer.loyaltyPoints || 0}</span>
+                    <span style={{ fontSize: '18px', fontWeight: 900, fontFamily: 'var(--font-mono)', color: '#34D399' }}>{currentCustomer.loyaltyPoints || 0}</span>
                   </div>
                 </div>
 
@@ -275,13 +279,13 @@ export default function CashierScanner() {
                 </div>
 
                 {/* Vouchers Redeem Section */}
-                {activeCustomer.vouchers && activeCustomer.vouchers.filter(v => v.status === 'unredeemed').length > 0 && (
+                {currentCustomer.vouchers && currentCustomer.vouchers.filter(v => v.status === 'unredeemed').length > 0 && (
                   <div style={{ paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                     <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#D4AF37', marginBottom: '8px', display: 'block' }}>
                       Ready to Redeem Vouchers
                     </span>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {activeCustomer.vouchers.filter(v => v.status === 'unredeemed').map((v, i) => (
+                      {currentCustomer.vouchers.filter(v => v.status === 'unredeemed').map((v, i) => (
                         <div
                           key={i}
                           style={{

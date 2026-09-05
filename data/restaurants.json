@@ -416,5 +416,45 @@
     "ownerName": "Store Manager",
     "ownerPhone": "9342705016",
     "ownerPin": "1234"
+  },
+  {
+    "id": "rest_thasif__2342",
+    "name": "thasif  biryani",
+    "tagline": "tasty ",
+    "category": "Clinic & Healthcare",
+    "currency": "₹",
+    "logoUrl": "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=150&auto=format&fit=crop&q=80",
+    "bannerUrl": "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=800&auto=format&fit=crop&q=80",
+    "theme": {
+      "preset": "dental_wellness",
+      "bgColor": "#091410",
+      "cardBgColor": "#12241C",
+      "textColor": "#F0FAF5",
+      "accentColor": "#10B981",
+      "stampActiveColor": "#34D399",
+      "stampIcon": "tooth"
+    },
+    "program": {
+      "type": "stamps",
+      "totalStamps": 5,
+      "rewardTitle": "Free Dental Scaling & Polishing",
+      "rewardDescription": "Complete 5 dental visits to receive a complimentary hygiene & polishing session.",
+      "vipSpendThreshold": 3000,
+      "vipReward": "VIP Card: Free Chef Special Dessert on every visit",
+      "pointsPerCurrency": 1,
+      "currencyPerPoint": 0.05
+    },
+    "links": {
+      "phone": "+91 98765 43210",
+      "whatsapp": "+919876543210",
+      "googleReviewUrl": "https://maps.google.com/?q=Cafe+Aroma",
+      "instagramHandle": "@cafearomaroasters",
+      "address": "12, 100 Feet Rd, Indiranagar, Bengaluru, Karnataka 560038"
+    },
+    "owner": {
+      "name": "Store Manager",
+      "phone": "",
+      "pin": "1234"
+    }
   }
 ]

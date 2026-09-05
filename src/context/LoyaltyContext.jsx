@@ -1,7 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import initialRestaurants from '../../data/restaurants.json';
 import initialCustomers from '../../data/customers.json';
 import { DEFAULT_RESTAURANT } from '../utils/presetTemplates';
+
+export const CLOUD_VAULT_CUSTOMERS_ID = 'ff808181a067127101a070ae4fb41712';
+export const CLOUD_VAULT_RESTAURANTS_ID = 'ff808181a067127101a070ae50371713';
+const CLOUD_VAULT_API = 'https://api.restful-api.dev/objects';
 
 export const normalizePhone = (p) => {
   if (!p) return '';
@@ -173,7 +177,7 @@ export function LoyaltyProvider({ children }) {
   const [activeTab, setActiveTab] = useState(initialRoute.tab || 'studio'); // 'studio' | 'standee' | 'customer-pass' | 'cashier' | 'crm'
   const [activeCustomerPhone, setActiveCustomerPhone] = useState(() => {
     const savedGuestPhone = localStorage.getItem('guest_loyalty_phone');
-    if (savedGuestPhone) return savedGuestPhone;
+    if (savedGuestPhone) return normalizePhone(savedGuestPhone);
     return initialRoute.isGuest ? '' : '9876543210';
   });
   const [lastStampAnimationTimestamp, setLastStampAnimationTimestamp] = useState(null);
@@ -196,96 +200,198 @@ export function LoyaltyProvider({ children }) {
     }
   };
 
-  // Real-time synchronization with server for cross-device updates (Laptop Cashier <-> Customer Phone)
-  const syncWithServer = async () => {
+  // Synchronize with persistent cloud vault (api.restful-api.dev)
+  const syncWithCloudVault = useCallback(async () => {
     try {
-      const res = await fetch('/api/loyalty/state');
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch(`${CLOUD_VAULT_API}/${CLOUD_VAULT_CUSTOMERS_ID}`, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (res.ok) {
+        const json = await res.json();
+        const cloudCustList = json?.data?.customers;
+        if (Array.isArray(cloudCustList) && cloudCustList.length > 0) {
+          setCustomers(prev => {
+            const guestStored = typeof window !== 'undefined' ? localStorage.getItem('guest_loyalty_phone') : '';
+            const targetPhone = normalizePhone(guestStored || activeCustomerPhone);
+
+            const currentCust = prev.find(c => normalizePhone(c.phone) === targetPhone && (c.restaurantId === activeRestaurantId || !c.restaurantId));
+            const serverCust = cloudCustList.find(c => normalizePhone(c.phone) === targetPhone && (c.restaurantId === activeRestaurantId || !c.restaurantId));
+
+            if (serverCust && currentCust && (Number(serverCust.visits) > Number(currentCust.visits) || Number(serverCust.loyaltyPoints) > Number(currentCust.loyaltyPoints))) {
+              setLastStampAnimationTimestamp(Date.now());
+            } else if (serverCust && !currentCust && Number(serverCust.visits) > 0) {
+              setLastStampAnimationTimestamp(Date.now());
+            }
+
+            return mergeCustomerRecords(prev, cloudCustList);
+          });
+        }
+      }
+    } catch {}
+  }, [activeCustomerPhone, activeRestaurantId]);
+
+  // Real-time synchronization with server for cross-device updates (Laptop Cashier <-> Customer Phone)
+  const syncWithServer = useCallback(async () => {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch('/api/loyalty/state', { signal: controller.signal });
+      clearTimeout(timeout);
       if (res.ok) {
         const text = await res.text();
         let data;
         try {
           data = JSON.parse(text);
         } catch {
-          return; // Ignore if HTML rewrite was returned
+          return;
         }
 
         if (data?.serverIp && data.serverIp !== '127.0.0.1') {
           setServerIp(data.serverIp);
         }
         if (Array.isArray(data.restaurants) && data.restaurants.length > 0) {
-          setRestaurants(data.restaurants);
+          setRestaurants(prev => {
+            const map = new Map();
+            prev.forEach(r => map.set(r.id, r));
+            data.restaurants.forEach(r => map.set(r.id, { ...(map.get(r.id) || {}), ...r }));
+            return Array.from(map.values());
+          });
         }
         if (Array.isArray(data.customers)) {
           setCustomers(prev => {
             const guestStored = typeof window !== 'undefined' ? localStorage.getItem('guest_loyalty_phone') : '';
             const targetPhone = normalizePhone(guestStored || activeCustomerPhone);
 
-            const currentCust = prev.find(c => normalizePhone(c.phone) === targetPhone && c.restaurantId === activeRestaurantId);
-            const serverCust = data.customers.find(c => normalizePhone(c.phone) === targetPhone && c.restaurantId === activeRestaurantId);
+            const currentCust = prev.find(c => normalizePhone(c.phone) === targetPhone && (c.restaurantId === activeRestaurantId || !c.restaurantId));
+            const serverCust = data.customers.find(c => normalizePhone(c.phone) === targetPhone && (c.restaurantId === activeRestaurantId || !c.restaurantId));
 
-            if (serverCust && currentCust && (serverCust.visits > currentCust.visits || serverCust.loyaltyPoints > currentCust.loyaltyPoints)) {
+            if (serverCust && currentCust && (Number(serverCust.visits) > Number(currentCust.visits) || Number(serverCust.loyaltyPoints) > Number(currentCust.loyaltyPoints))) {
               setLastStampAnimationTimestamp(Date.now());
-            } else if (serverCust && !currentCust && serverCust.visits > 0) {
+            } else if (serverCust && !currentCust && Number(serverCust.visits) > 0) {
               setLastStampAnimationTimestamp(Date.now());
             }
 
-            // CRDT Monotonic Merge: visits & points NEVER revert backwards!
             return mergeCustomerRecords(prev, data.customers);
           });
         }
       }
-    } catch (e) {
-      // offline fallback
-    }
-  };
-
-  useEffect(() => {
-    syncWithServer();
-    const interval = setInterval(syncWithServer, 1200);
-    return () => clearInterval(interval);
+    } catch {}
   }, [activeCustomerPhone, activeRestaurantId]);
 
-  // Universal Cloud Real-Time Pub/Sub Channel (Laptop Cashier <-> Mobile Phone across Internet/Hotspot)
+  // Immediate on-demand multi-channel sync trigger
+  const triggerImmediateSync = useCallback((customPhone) => {
+    const targetPhone = normalizePhone(customPhone || (typeof window !== 'undefined' ? localStorage.getItem('guest_loyalty_phone') : '') || activeCustomerPhone);
+    syncWithServer();
+    syncWithCloudVault();
+
+    if (targetPhone && targetPhone.length >= 10) {
+      // Poll dedicated phone mailbox
+      fetch(`https://ntfy.sh/loyaltyforge_sync_${targetPhone}/json?poll=1&since=24h`)
+        .then(r => r.text())
+        .then(text => {
+          const lines = (text || '').split('\n').filter(Boolean);
+          for (const line of lines) {
+            try {
+              const item = JSON.parse(line);
+              if (item?.message) {
+                const parsed = JSON.parse(item.message);
+                if (parsed?.customer) {
+                  setCustomers(prev => mergeCustomerRecords(prev, [parsed.customer]));
+                  setLastStampAnimationTimestamp(Date.now());
+                }
+              }
+            } catch {}
+          }
+        })
+        .catch(() => {});
+    }
+  }, [activeCustomerPhone, syncWithServer, syncWithCloudVault]);
+
+  // Periodic multi-source polling (every 1.5 seconds)
+  useEffect(() => {
+    syncWithServer();
+    syncWithCloudVault();
+    const interval = setInterval(() => {
+      syncWithServer();
+      syncWithCloudVault();
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [syncWithServer, syncWithCloudVault]);
+
+  // Universal Cloud Real-Time Pub/Sub Channel & Dedicated Phone Channel (Laptop Cashier <-> Mobile Phone across Internet/Hotspot)
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    const guestStored = localStorage.getItem('guest_loyalty_phone') || '';
+    const targetClean = normalizePhone(guestStored || activeCustomerPhone);
 
     const handleIncomingMessage = (rawMessage) => {
       try {
         const parsed = typeof rawMessage === 'string' ? JSON.parse(rawMessage) : rawMessage;
         if (parsed?.type === 'STAMP_AWARDED' && parsed.customer) {
           setCustomers(prev => mergeCustomerRecords(prev, [parsed.customer]));
-          const guestStored = localStorage.getItem('guest_loyalty_phone') || '';
-          const targetClean = normalizePhone(guestStored || activeCustomerPhone);
+          const currentGuestStored = localStorage.getItem('guest_loyalty_phone') || '';
+          const currentTarget = normalizePhone(currentGuestStored || activeCustomerPhone);
           const custClean = normalizePhone(parsed.customer.phone);
-          if (custClean === targetClean && (parsed.customer.restaurantId === activeRestaurantId || !parsed.customer.restaurantId)) {
+          if (custClean === currentTarget) {
             setLastStampAnimationTimestamp(Date.now());
           }
+        } else if (parsed?.type === 'RESTAURANTS_SYNC' && Array.isArray(parsed.restaurants)) {
+          setRestaurants(parsed.restaurants);
         }
       } catch {}
     };
 
-    // 1. Instant Real-Time SSE Stream
-    let es;
+    // 1. Universal SSE Stream
+    let universalEs;
+    let phoneEs;
     if (window.EventSource) {
       try {
-        es = new EventSource('https://ntfy.sh/loyaltyforge_universal_sync/sse');
-        es.onmessage = (event) => {
+        universalEs = new EventSource('https://ntfy.sh/loyaltyforge_universal_sync/sse');
+        universalEs.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            if (data?.message) {
-              handleIncomingMessage(data.message);
-            }
+            if (data?.message) handleIncomingMessage(data.message);
           } catch {}
         };
       } catch {}
+
+      if (targetClean && targetClean.length >= 10) {
+        try {
+          phoneEs = new EventSource(`https://ntfy.sh/loyaltyforge_sync_${targetClean}/sse`);
+          phoneEs.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (data?.message) handleIncomingMessage(data.message);
+            } catch {}
+          };
+        } catch {}
+      }
     }
 
-    // 2. Active Mobile Polling (bypasses mobile browser battery throttles)
+    // 2. Active Mobile Polling (with since=24h to catch up on any missed stamps)
     const pollCloud = async () => {
       try {
-        const res = await fetch('https://ntfy.sh/loyaltyforge_universal_sync/json?poll=1');
-        if (res.ok) {
-          const lines = (await res.text()).split('\n').filter(Boolean);
+        const fetchUniversal = fetch('https://ntfy.sh/loyaltyforge_universal_sync/json?poll=1&since=24h');
+        const fetchPhone = (targetClean && targetClean.length >= 10)
+          ? fetch(`https://ntfy.sh/loyaltyforge_sync_${targetClean}/json?poll=1&since=24h`)
+          : Promise.resolve(null);
+
+        const [uRes, pRes] = await Promise.all([fetchUniversal.catch(() => null), fetchPhone.catch(() => null)]);
+
+        if (uRes && uRes.ok) {
+          const lines = (await uRes.text()).split('\n').filter(Boolean);
+          for (const line of lines) {
+            try {
+              const item = JSON.parse(line);
+              if (item?.message) handleIncomingMessage(item.message);
+            } catch {}
+          }
+        }
+
+        if (pRes && pRes.ok) {
+          const lines = (await pRes.text()).split('\n').filter(Boolean);
           for (const line of lines) {
             try {
               const item = JSON.parse(line);
@@ -296,23 +402,26 @@ export function LoyaltyProvider({ children }) {
       } catch {}
     };
 
+    pollCloud();
     const pollInterval = setInterval(pollCloud, 1500);
 
     // 3. Mobile Wakeup / Tab Focus trigger
     const onWakeup = () => {
       syncWithServer();
+      syncWithCloudVault();
       pollCloud();
     };
     window.addEventListener('visibilitychange', onWakeup);
     window.addEventListener('focus', onWakeup);
 
     return () => {
-      if (es) es.close();
+      if (universalEs) universalEs.close();
+      if (phoneEs) phoneEs.close();
       clearInterval(pollInterval);
       window.removeEventListener('visibilitychange', onWakeup);
       window.removeEventListener('focus', onWakeup);
     };
-  }, [activeRestaurantId, activeCustomerPhone]);
+  }, [activeRestaurantId, activeCustomerPhone, syncWithServer, syncWithCloudVault]);
 
   // Multi-tab real-time sync listener (Instant confetti on customer pass when cashier stamps)
   useEffect(() => {
@@ -322,9 +431,10 @@ export function LoyaltyProvider({ children }) {
     channel.onmessage = (event) => {
       const { type, payload } = event.data || {};
       if (type === 'STAMP_AWARDED') {
-        const targetClean = normalizePhone(activeCustomerPhone);
+        const guestStored = localStorage.getItem('guest_loyalty_phone') || '';
+        const targetClean = normalizePhone(guestStored || activeCustomerPhone);
         const payloadClean = normalizePhone(payload?.phone);
-        if (payloadClean === targetClean && payload?.restaurantId === activeRestaurantId) {
+        if (payloadClean === targetClean) {
           setLastStampAnimationTimestamp(Date.now());
         }
         if (payload?.customer) {
@@ -350,8 +460,10 @@ export function LoyaltyProvider({ children }) {
     r.id?.toLowerCase() === String(activeRestaurantId).toLowerCase() ||
     r.name?.toLowerCase().replace(/[^a-z0-9]/g, '') === String(activeRestaurantId).toLowerCase().replace(/[^a-z0-9]/g, '')
   ) || restaurants[0] || DEFAULT_RESTAURANT;
-  const activeCustomer = customers.find(c => c.phone === activeCustomerPhone && c.restaurantId === activeRestaurantId) || {
-    phone: activeCustomerPhone,
+
+  const currentActiveCleanPhone = normalizePhone(activeCustomerPhone);
+  const activeCustomer = customers.find(c => normalizePhone(c.phone) === currentActiveCleanPhone && (c.restaurantId === activeRestaurantId || !c.restaurantId)) || {
+    phone: currentActiveCleanPhone,
     name: 'Guest Customer',
     restaurantId: activeRestaurantId,
     visits: 0,
@@ -375,6 +487,14 @@ export function LoyaltyProvider({ children }) {
       return r;
     });
     setRestaurants(updated);
+
+    // Sync cloud vault
+    fetch(`${CLOUD_VAULT_API}/${CLOUD_VAULT_RESTAURANTS_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'loyaltyforge_cloud_restaurants_v1', data: { lastUpdated: Date.now(), restaurants: updated } })
+    }).catch(() => {});
+
     fetch('/api/loyalty/restaurants', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -534,13 +654,27 @@ export function LoyaltyProvider({ children }) {
       ...customData
     };
 
-    // Prepend newly created restaurant to the top of the list so it is immediately prominent
     const updated = [newRest, ...restaurants.filter(r => r.id !== newId)];
     setRestaurants(updated);
     setActiveRestaurantId(newId);
 
     try {
       localStorage.setItem('loyalty_restaurants', JSON.stringify(updated));
+    } catch {}
+
+    // Broadcast across cloud
+    try {
+      fetch(`${CLOUD_VAULT_API}/${CLOUD_VAULT_RESTAURANTS_ID}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'loyaltyforge_cloud_restaurants_v1', data: { lastUpdated: Date.now(), restaurants: updated } })
+      }).catch(() => {});
+
+      fetch('https://ntfy.sh/loyaltyforge_universal_sync', {
+        method: 'POST',
+        headers: { 'Title': 'RESTAURANTS_SYNC', 'Priority': 'high' },
+        body: JSON.stringify({ type: 'RESTAURANTS_SYNC', restaurants: updated })
+      }).catch(() => {});
     } catch {}
 
     fetch('/api/loyalty/restaurants', {
@@ -557,10 +691,12 @@ export function LoyaltyProvider({ children }) {
     return onboardNewRestaurant(customData);
   };
 
-  // Register customer or get existing record
+  // Register customer or get existing record for ANY phone number
   const registerOrGetCustomer = (phone, name = 'Guest Customer') => {
     const cleanPhone = normalizePhone(phone);
-    let existing = customers.find(c => normalizePhone(c.phone) === cleanPhone && c.restaurantId === activeRestaurantId);
+    if (!cleanPhone || cleanPhone.length < 10) return null;
+
+    let existing = customers.find(c => normalizePhone(c.phone) === cleanPhone && (c.restaurantId === activeRestaurantId || !c.restaurantId));
     if (!existing) {
       const newCust = {
         id: `cust_${Date.now()}`,
@@ -574,10 +710,12 @@ export function LoyaltyProvider({ children }) {
         createdAt: new Date().toISOString(),
         vouchers: []
       };
-      setCustomers(prev => [...prev, newCust]);
+      setCustomers(prev => mergeCustomerRecords(prev, [newCust]));
       existing = newCust;
     }
+
     setActiveCustomerPhone(cleanPhone);
+    triggerImmediateSync(cleanPhone);
 
     fetch('/api/loyalty/register', {
       method: 'POST',
@@ -590,9 +728,13 @@ export function LoyaltyProvider({ children }) {
     return existing;
   };
 
-  // Add visit / stamp to customer
+  // Add visit / stamp to ANY customer mobile number
   const addStampToCustomer = (phone, billAmount = 0) => {
     const cleanPhone = normalizePhone(phone);
+    if (!cleanPhone || cleanPhone.length < 10) {
+      return { success: false, message: 'Valid 10-digit phone number is required' };
+    }
+
     const amountNum = parseFloat(billAmount) || 0;
     const totalStampsNeeded = activeRestaurant.program?.totalStamps || 5;
     const rewardTitle = activeRestaurant.program?.rewardTitle || '₹100 Instant Discount';
@@ -600,9 +742,10 @@ export function LoyaltyProvider({ children }) {
     const pointsPerCurrency = activeRestaurant.program?.pointsPerCurrency || 1;
 
     let targetUpdatedCust = null;
+    let allUpdatedCustomers = null;
 
     setCustomers(prev => {
-      const index = prev.findIndex(c => normalizePhone(c.phone) === cleanPhone && c.restaurantId === activeRestaurantId);
+      const index = prev.findIndex(c => normalizePhone(c.phone) === cleanPhone && (c.restaurantId === activeRestaurantId || !c.restaurantId));
       const target = index >= 0 ? prev[index] : {
         id: `cust_${Date.now()}`,
         restaurantId: activeRestaurantId,
@@ -615,10 +758,10 @@ export function LoyaltyProvider({ children }) {
         vouchers: []
       };
 
-      const newVisits = target.visits + 1;
-      const newSpend = target.totalSpend + amountNum;
+      const newVisits = (Number(target.visits) || 0) + 1;
+      const newSpend = (Number(target.totalSpend) || 0) + amountNum;
       const pointsEarned = Math.max(10, Math.round(amountNum * pointsPerCurrency));
-      const newPoints = target.loyaltyPoints + pointsEarned;
+      const newPoints = (Number(target.loyaltyPoints) || 0) + pointsEarned;
       const newVouchers = [...(target.vouchers || [])];
 
       // Check stamp milestone cycle
@@ -650,6 +793,7 @@ export function LoyaltyProvider({ children }) {
 
       const updatedCust = {
         ...target,
+        restaurantId: activeRestaurantId,
         visits: newVisits,
         totalSpend: newSpend,
         loyaltyPoints: newPoints,
@@ -660,12 +804,16 @@ export function LoyaltyProvider({ children }) {
 
       targetUpdatedCust = updatedCust;
 
+      let result;
       if (index >= 0) {
         const copy = [...prev];
         copy[index] = updatedCust;
-        return copy;
+        result = copy;
+      } else {
+        result = [...prev, updatedCust];
       }
-      return [...prev, updatedCust];
+      allUpdatedCustomers = result;
+      return result;
     });
 
     setActiveCustomerPhone(cleanPhone);
@@ -678,26 +826,53 @@ export function LoyaltyProvider({ children }) {
       customer: targetUpdatedCust
     });
 
-    // Broadcast across cloud to mobile phones on any network (Mobile Data, Hotspot, Wi-Fi)
+    // 1. Broadcast across cloud to mobile phones on any network (Mobile Data, Hotspot, Wi-Fi)
     try {
       const payloadStr = JSON.stringify({
         type: 'STAMP_AWARDED',
         restaurantId: activeRestaurantId,
         customer: targetUpdatedCust
       });
+      const pubHeaders = { 'Title': 'STAMP_AWARDED', 'Priority': 'high' };
+
+      // Universal topic
       fetch('https://ntfy.sh/loyaltyforge_universal_sync', {
         method: 'POST',
-        headers: { 'Title': 'STAMP_AWARDED', 'Priority': 'high' },
+        headers: pubHeaders,
         body: payloadStr
       }).catch(() => {});
-      fetch(`https://ntfy.sh/loyaltyforge_room_${activeRestaurantId}`, {
+
+      // Dedicated phone topic
+      fetch(`https://ntfy.sh/loyaltyforge_sync_${cleanPhone}`, {
         method: 'POST',
-        headers: { 'Title': 'STAMP_AWARDED', 'Priority': 'high' },
+        headers: pubHeaders,
         body: payloadStr
       }).catch(() => {});
+
+      // Dedicated restaurant topic
+      if (activeRestaurantId) {
+        fetch(`https://ntfy.sh/loyaltyforge_room_${activeRestaurantId}`, {
+          method: 'POST',
+          headers: pubHeaders,
+          body: payloadStr
+        }).catch(() => {});
+      }
     } catch {}
 
-    // Broadcast to server (local API / Vercel serverless)
+    // 2. Broadcast to Persistent Cloud Vault (api.restful-api.dev)
+    if (allUpdatedCustomers || targetUpdatedCust) {
+      const toSync = allUpdatedCustomers || [targetUpdatedCust];
+      fetch(`${CLOUD_VAULT_API}/${CLOUD_VAULT_CUSTOMERS_ID}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'loyaltyforge_cloud_customers_v1',
+          data: { lastUpdated: Date.now(), customers: toSync }
+        })
+      }).catch(() => {});
+    }
+
+    // 3. Broadcast to server (local API / Vercel serverless)
     fetch('/api/loyalty/stamp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -715,20 +890,37 @@ export function LoyaltyProvider({ children }) {
   // Redeem voucher
   const redeemCustomerVoucher = (phone, voucherCode) => {
     const cleanPhone = normalizePhone(phone);
-    setCustomers(prev => prev.map(c => {
-      if (normalizePhone(c.phone) === cleanPhone && c.restaurantId === activeRestaurantId) {
-        return {
-          ...c,
-          vouchers: (c.vouchers || []).map(v => {
-            if (v.code === voucherCode) {
-              return { ...v, status: 'redeemed', redeemedAt: new Date().toISOString() };
-            }
-            return v;
-          })
-        };
-      }
-      return c;
-    }));
+    let updatedCustList = null;
+
+    setCustomers(prev => {
+      const updated = prev.map(c => {
+        if (normalizePhone(c.phone) === cleanPhone && (c.restaurantId === activeRestaurantId || !c.restaurantId)) {
+          return {
+            ...c,
+            vouchers: (c.vouchers || []).map(v => {
+              if (v.code === voucherCode) {
+                return { ...v, status: 'redeemed', redeemedAt: new Date().toISOString() };
+              }
+              return v;
+            })
+          };
+        }
+        return c;
+      });
+      updatedCustList = updated;
+      return updated;
+    });
+
+    if (updatedCustList) {
+      fetch(`${CLOUD_VAULT_API}/${CLOUD_VAULT_CUSTOMERS_ID}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'loyaltyforge_cloud_customers_v1',
+          data: { lastUpdated: Date.now(), customers: updatedCustList }
+        })
+      }).catch(() => {});
+    }
 
     fetch('/api/loyalty/redeem', {
       method: 'POST',
@@ -751,6 +943,7 @@ export function LoyaltyProvider({ children }) {
     setActiveRestaurantId(initialRestaurants?.[0]?.id || 'rest_001');
     localStorage.removeItem('loyalty_restaurants');
     localStorage.removeItem('loyalty_customers');
+    localStorage.removeItem('guest_loyalty_phone');
   };
 
   return (
@@ -786,6 +979,7 @@ export function LoyaltyProvider({ children }) {
         addStampToCustomer,
         redeemCustomerVoucher,
         redeemVoucher: redeemCustomerVoucher,
+        triggerImmediateSync,
         resetToDefaultData
       }}
     >

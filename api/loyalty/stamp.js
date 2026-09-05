@@ -1,6 +1,14 @@
-import { getRestaurants, getCustomers, saveCustomers, normalizePhone } from './_store.js';
+import { 
+  getRestaurants, 
+  getCustomers, 
+  saveCustomers, 
+  fetchCloudCustomers, 
+  syncCloudCustomers, 
+  mergeCustomerLists, 
+  normalizePhone 
+} from './_store.js';
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -23,18 +31,24 @@ export default function handler(req, res) {
   }
 
   const restaurants = getRestaurants();
-  const customers = getCustomers();
+  let customers = getCustomers();
 
-  const targetRest = restaurants.find(r => r.id === restaurantId) || restaurants[0] || {};
+  // Refresh from cloud vault if available
+  const cloudCustomers = await fetchCloudCustomers();
+  if (Array.isArray(cloudCustomers)) {
+    customers = mergeCustomerLists(customers, cloudCustomers);
+  }
+
+  const targetRest = restaurants.find(r => r.id === restaurantId || r.id?.toLowerCase() === String(restaurantId).toLowerCase()) || restaurants[0] || {};
   const totalStampsNeeded = targetRest?.program?.totalStamps || 5;
   const rewardTitle = targetRest?.program?.rewardTitle || '₹100 Instant Discount';
   const vipThreshold = targetRest?.program?.vipSpendThreshold || 5000;
   const pointsPerCurrency = targetRest?.program?.pointsPerCurrency || 1;
 
-  const index = customers.findIndex(c => normalizePhone(c.phone) === cleanPhone && c.restaurantId === restaurantId);
+  const index = customers.findIndex(c => normalizePhone(c.phone) === cleanPhone && (c.restaurantId === restaurantId || !c.restaurantId));
   const target = index >= 0 ? customers[index] : {
     id: `cust_${Date.now()}`,
-    restaurantId: restaurantId,
+    restaurantId: restaurantId || targetRest.id || 'rest_001',
     phone: cleanPhone,
     name: `Guest ${cleanPhone.slice(-4)}`,
     visits: 0,
@@ -44,10 +58,10 @@ export default function handler(req, res) {
     vouchers: []
   };
 
-  const newVisits = (target.visits || 0) + 1;
-  const newSpend = (target.totalSpend || 0) + amountNum;
+  const newVisits = (Number(target.visits) || 0) + 1;
+  const newSpend = (Number(target.totalSpend) || 0) + amountNum;
   const pointsEarned = Math.max(10, Math.round(amountNum * pointsPerCurrency));
-  const newPoints = (target.loyaltyPoints || 0) + pointsEarned;
+  const newPoints = (Number(target.loyaltyPoints) || 0) + pointsEarned;
   const newVouchers = [...(target.vouchers || [])];
 
   if (newVisits % totalStampsNeeded === 0) {
@@ -77,6 +91,7 @@ export default function handler(req, res) {
 
   const updatedCust = {
     ...target,
+    restaurantId: restaurantId || target.restaurantId || targetRest.id,
     visits: newVisits,
     totalSpend: newSpend,
     loyaltyPoints: newPoints,
@@ -92,6 +107,23 @@ export default function handler(req, res) {
   }
 
   saveCustomers(customers);
+  await syncCloudCustomers(customers);
+
+  // Broadcast to universal and dedicated cloud pub/sub topics
+  const pubSubPayload = JSON.stringify({
+    type: 'STAMP_AWARDED',
+    restaurantId: updatedCust.restaurantId,
+    customer: updatedCust
+  });
+
+  try {
+    const pubHeaders = { 'Title': 'STAMP_AWARDED', 'Priority': 'high' };
+    fetch('https://ntfy.sh/loyaltyforge_universal_sync', { method: 'POST', headers: pubHeaders, body: pubSubPayload }).catch(() => {});
+    fetch(`https://ntfy.sh/loyaltyforge_sync_${cleanPhone}`, { method: 'POST', headers: pubHeaders, body: pubSubPayload }).catch(() => {});
+    if (updatedCust.restaurantId) {
+      fetch(`https://ntfy.sh/loyaltyforge_room_${updatedCust.restaurantId}`, { method: 'POST', headers: pubHeaders, body: pubSubPayload }).catch(() => {});
+    }
+  } catch {}
 
   return res.status(200).json({
     success: true,

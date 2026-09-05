@@ -1,6 +1,13 @@
-import { getCustomers, saveCustomers, normalizePhone } from './_store.js';
+import { 
+  getCustomers, 
+  saveCustomers, 
+  fetchCloudCustomers, 
+  syncCloudCustomers, 
+  mergeCustomerLists, 
+  normalizePhone 
+} from './_store.js';
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -21,13 +28,20 @@ export default function handler(req, res) {
     return res.status(400).json({ error: 'Valid 10-digit phone number is required' });
   }
 
-  const customers = getCustomers();
-  let existing = customers.find(c => normalizePhone(c.phone) === cleanPhone && c.restaurantId === restaurantId);
+  let customers = getCustomers();
+
+  // Refresh from cloud vault
+  const cloudCustomers = await fetchCloudCustomers();
+  if (Array.isArray(cloudCustomers)) {
+    customers = mergeCustomerLists(customers, cloudCustomers);
+  }
+
+  let existing = customers.find(c => normalizePhone(c.phone) === cleanPhone && (c.restaurantId === restaurantId || !c.restaurantId));
 
   if (!existing) {
     existing = {
       id: `cust_${Date.now()}`,
-      restaurantId: restaurantId,
+      restaurantId: restaurantId || 'rest_001',
       phone: cleanPhone,
       name: name || `Guest ${cleanPhone.slice(-4)}`,
       visits: 0,
@@ -38,8 +52,12 @@ export default function handler(req, res) {
       vouchers: []
     };
     customers.push(existing);
-    saveCustomers(customers);
+  } else if (name && existing.name === `Guest ${cleanPhone.slice(-4)}`) {
+    existing.name = name;
   }
+
+  saveCustomers(customers);
+  await syncCloudCustomers(customers);
 
   return res.status(200).json({
     success: true,

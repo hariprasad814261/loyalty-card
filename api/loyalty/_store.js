@@ -1,6 +1,66 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+// Persistent Cloud Storage Vault IDs on api.restful-api.dev (accessible globally with zero setup)
+export const CLOUD_VAULT_CUSTOMERS_ID = 'ff808181a067127101a070ae4fb41712';
+export const CLOUD_VAULT_RESTAURANTS_ID = 'ff808181a067127101a070ae50371713';
+const CLOUD_VAULT_API = 'https://api.restful-api.dev/objects';
+
+export const normalizePhone = (phone) => {
+  if (!phone) return '';
+  const digits = String(phone).replace(/\D/g, '');
+  return digits.length > 10 ? digits.slice(-10) : digits;
+};
+
+// Monotonic CRDT customer record merger
+export function mergeCustomerLists(localList = [], incomingList = []) {
+  const map = new Map();
+
+  (localList || []).forEach(cust => {
+    if (!cust?.phone) return;
+    const clean = normalizePhone(cust.phone);
+    const key = `${cust.restaurantId || 'rest'}_${clean}`;
+    map.set(key, { ...cust, phone: clean });
+  });
+
+  (incomingList || []).forEach(inc => {
+    if (!inc?.phone) return;
+    const clean = normalizePhone(inc.phone);
+    const key = `${inc.restaurantId || 'rest'}_${clean}`;
+    if (!map.has(key)) {
+      map.set(key, { ...inc, phone: clean });
+    } else {
+      const existing = map.get(key);
+      const higherVisits = Math.max(Number(existing.visits) || 0, Number(inc.visits) || 0);
+      const higherSpend = Math.max(Number(existing.totalSpend) || 0, Number(inc.totalSpend) || 0);
+      const higherPoints = Math.max(Number(existing.loyaltyPoints) || 0, Number(inc.loyaltyPoints) || 0);
+
+      const voucherMap = new Map();
+      (existing.vouchers || []).forEach(v => { if (v?.code) voucherMap.set(v.code, v); });
+      (inc.vouchers || []).forEach(v => {
+        if (v?.code && (!voucherMap.has(v.code) || v.status === 'redeemed')) {
+          voucherMap.set(v.code, v);
+        }
+      });
+
+      map.set(key, {
+        ...existing,
+        ...inc,
+        phone: clean,
+        visits: higherVisits,
+        totalSpend: higherSpend,
+        loyaltyPoints: higherPoints,
+        vouchers: Array.from(voucherMap.values()),
+        lastVisit: (new Date(existing.lastVisit || 0) > new Date(inc.lastVisit || 0))
+          ? existing.lastVisit
+          : inc.lastVisit
+      });
+    }
+  });
+
+  return Array.from(map.values());
+}
+
 // Initial fallback restaurants if file read fails
 const DEFAULT_RESTAURANTS = [
   {
@@ -105,6 +165,72 @@ function loadLocalSeed(filename, fallback) {
   return fallback;
 }
 
+export async function fetchCloudCustomers() {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(`${CLOUD_VAULT_API}/${CLOUD_VAULT_CUSTOMERS_ID}`, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (res.ok) {
+      const json = await res.json();
+      if (Array.isArray(json?.data?.customers)) {
+        return json.data.customers;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+export async function syncCloudCustomers(customers) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    await fetch(`${CLOUD_VAULT_API}/${CLOUD_VAULT_CUSTOMERS_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'loyaltyforge_cloud_customers_v1',
+        data: { lastUpdated: Date.now(), customers }
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+  } catch {}
+}
+
+export async function fetchCloudRestaurants() {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(`${CLOUD_VAULT_API}/${CLOUD_VAULT_RESTAURANTS_ID}`, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (res.ok) {
+      const json = await res.json();
+      if (Array.isArray(json?.data?.restaurants) && json.data.restaurants.length > 0) {
+        return json.data.restaurants;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+export async function syncCloudRestaurants(restaurants) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    await fetch(`${CLOUD_VAULT_API}/${CLOUD_VAULT_RESTAURANTS_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'loyaltyforge_cloud_restaurants_v1',
+        data: { lastUpdated: Date.now(), restaurants }
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+  } catch {}
+}
+
 export function getRestaurants() {
   if (inMemoryRestaurants) return inMemoryRestaurants;
   try {
@@ -122,6 +248,7 @@ export function saveRestaurants(restaurants) {
   try {
     fs.writeFileSync(TMP_RESTAURANTS_PATH, JSON.stringify(restaurants, null, 2));
   } catch {}
+  syncCloudRestaurants(restaurants).catch(() => {});
 }
 
 export function getCustomers() {
@@ -141,10 +268,5 @@ export function saveCustomers(customers) {
   try {
     fs.writeFileSync(TMP_CUSTOMERS_PATH, JSON.stringify(customers, null, 2));
   } catch {}
-}
-
-export function normalizePhone(phone) {
-  if (!phone) return '';
-  const digits = String(phone).replace(/\D/g, '');
-  return digits.length > 10 ? digits.slice(-10) : digits;
+  syncCloudCustomers(customers).catch(() => {});
 }

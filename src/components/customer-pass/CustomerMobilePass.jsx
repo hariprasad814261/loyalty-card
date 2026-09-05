@@ -30,21 +30,21 @@ export default function CustomerMobilePass() {
     activeCustomerPhone, 
     setActiveCustomerPhone,
     registerOrGetCustomer, 
+    triggerImmediateSync,
     isGuestMode,
     lastStampAnimationTimestamp,
     checkIsOwnerPhone
   } = useLoyalty();
 
-  // In guest mode, strictly read ONLY from this guest's session; never expose shared studio customer profile
-  const guestPhone = isGuestMode 
-    ? (typeof window !== 'undefined' ? localStorage.getItem('guest_loyalty_phone') || '' : '')
-    : activeCustomerPhone;
-
+  // In guest mode, read from localStorage or active context phone
+  const storedGuestPhone = typeof window !== 'undefined' ? (localStorage.getItem('guest_loyalty_phone') || activeCustomerPhone || '') : '';
+  const guestPhone = isGuestMode ? storedGuestPhone : activeCustomerPhone;
   const cleanGuestPhone = normalizePhone(guestPhone);
 
   const currentCustomer = isGuestMode
     ? ((cleanGuestPhone && cleanGuestPhone.length === 10)
-        ? (customers.find(c => normalizePhone(c.phone) === cleanGuestPhone && c.restaurantId === activeRestaurant?.id) || {
+        ? (customers.find(c => normalizePhone(c.phone) === cleanGuestPhone && (c.restaurantId === activeRestaurant?.id || !c.restaurantId)) ||
+           customers.find(c => normalizePhone(c.phone) === cleanGuestPhone) || {
             id: `cust_${activeRestaurant?.id || 'rest'}_${cleanGuestPhone.slice(-4)}`,
             phone: cleanGuestPhone,
             name: `Guest ${cleanGuestPhone.slice(-4)}`,
@@ -61,9 +61,15 @@ export default function CustomerMobilePass() {
   const [showWalletExportSuccess, setShowWalletExportSuccess] = useState(null);
   const [showMerchantAuthModal, setShowMerchantAuthModal] = useState(false);
 
+  useEffect(() => {
+    if (cleanGuestPhone && cleanGuestPhone.length === 10) {
+      setInputPhone(cleanGuestPhone);
+    }
+  }, [cleanGuestPhone]);
+
   const { theme = {}, program = {}, links = {} } = activeRestaurant || {};
   const totalStamps = program.totalStamps || 5;
-  const visits = currentCustomer?.visits || 0;
+  const visits = Number(currentCustomer?.visits) || 0;
   const stampsInCycle = visits % totalStamps;
   const isRewardReady = visits > 0 && stampsInCycle === 0;
 
@@ -84,6 +90,9 @@ export default function CustomerMobilePass() {
       localStorage.setItem('guest_loyalty_phone', clean);
       registerOrGetCustomer(clean);
       setActiveCustomerPhone(clean);
+      if (typeof triggerImmediateSync === 'function') {
+        triggerImmediateSync(clean);
+      }
     }
   };
 
@@ -105,7 +114,7 @@ export default function CustomerMobilePass() {
   const stampActiveColor = theme.stampActiveColor || '#E5C07B';
 
   // If Guest Mode and phone is not entered yet, show the customer welcome check-in screen directly
-  if (isGuestMode && (!guestPhone || guestPhone.length < 10)) {
+  if (isGuestMode && (!cleanGuestPhone || cleanGuestPhone.length < 10)) {
     return (
       <div style={{ maxWidth: '440px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }} className="animate-fade-in">
         <div className="lf-card animate-fade-in" style={{ padding: '28px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
@@ -149,6 +158,9 @@ export default function CustomerMobilePass() {
                     localStorage.setItem('guest_loyalty_phone', '9876543210');
                     registerOrGetCustomer('9876543210');
                     setActiveCustomerPhone('9876543210');
+                    if (typeof triggerImmediateSync === 'function') {
+                      triggerImmediateSync('9876543210');
+                    }
                   }}
                   className="lf-btn-ghost"
                   style={{ fontSize: '10px', color: '#D4AF37', padding: '0 4px', textDecoration: 'underline', cursor: 'pointer' }}
@@ -169,7 +181,7 @@ export default function CustomerMobilePass() {
                   onChange={(e) => setInputPhone(e.target.value.replace(/\D/g, ''))}
                   className="lf-input lf-input-mono"
                   style={{ flex: 1, padding: '10px 14px', fontSize: '15px', letterSpacing: '0.1em' }}
-                  placeholder="9876543210"
+                  placeholder="Enter 10 Digits"
                 />
               </div>
             </div>
@@ -228,17 +240,19 @@ export default function CustomerMobilePass() {
     );
   }
 
+  const displayedPhone = cleanGuestPhone || normalizePhone(currentCustomer?.phone) || normalizePhone(activeCustomerPhone);
+
   return (
     <div style={{ maxWidth: '440px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }} className="animate-fade-in">
       
       {/* Phone Header Indicator */}
       {isGuestMode ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', borderRadius: '10px', background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.08)', fontSize: '11px', color: '#8E8478' }}>
-          <span>👤 Member: <strong style={{ color: '#F3E5AB' }}>+91 {currentCustomer?.phone || guestPhone}</strong></span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', borderRadius: '10px', background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(212, 175, 55, 0.25)', fontSize: '12px', color: '#8E8478' }}>
+          <span>👤 Member: <strong style={{ color: '#F3E5AB', letterSpacing: '0.05em' }}>+91 {displayedPhone}</strong></span>
           <button
             type="button"
             onClick={handleLogoutGuest}
-            style={{ background: 'none', border: 'none', color: '#D4AF37', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline' }}
+            style={{ background: 'none', border: 'none', color: '#D4AF37', cursor: 'pointer', fontSize: '11.5px', textDecoration: 'underline', fontWeight: 700 }}
           >
             Change Number
           </button>
@@ -256,7 +270,7 @@ export default function CustomerMobilePass() {
                 type="tel"
                 maxLength="10"
                 value={inputPhone}
-                onChange={(e) => setInputPhone(e.target.value)}
+                onChange={(e) => setInputPhone(e.target.value.replace(/\D/g, ''))}
                 className="lf-input lf-input-mono"
                 style={{ width: '110px', padding: '6px 10px', fontSize: '12px', textAlign: 'center' }}
                 placeholder="9876543210"
@@ -436,10 +450,10 @@ export default function CustomerMobilePass() {
           {/* Barcode Box */}
           <div style={{ background: '#FFFFFF', padding: '14px', borderRadius: '18px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.15)' }}>
             <QrCode size={72} color="#000000" />
-            <div style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#1E293B', marginTop: '4px', letterSpacing: '0.08em' }}>
-              {currentCustomer?.phone || (isGuestMode ? guestPhone : '9876543210')}
+            <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 900, color: '#0F172A', marginTop: '4px', letterSpacing: '0.08em' }}>
+              {displayedPhone}
             </div>
-            <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B', textTransform: 'uppercase', fontWeight: 700 }}>
               SHOW TO CASHIER WHEN BILLING
             </span>
           </div>
@@ -564,7 +578,7 @@ export default function CustomerMobilePass() {
       {/* Staff & Owner Authentication / Registration Modal */}
       {showMerchantAuthModal && (
         <MerchantLoginModal
-          prefilledPhone={inputPhone || cleanGuestPhone}
+          prefilledPhone={displayedPhone}
           prefilledRestaurant={activeRestaurant}
           onClose={() => setShowMerchantAuthModal(false)}
           onContinueAsGuest={() => setShowMerchantAuthModal(false)}
