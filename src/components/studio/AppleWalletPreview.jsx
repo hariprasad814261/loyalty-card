@@ -10,7 +10,8 @@ import {
   Phone, 
   Star,
   QrCode,
-  RotateCw
+  RotateCw,
+  Info
 } from 'lucide-react';
 import { DynamicQrCode } from '../common/DynamicQrCode';
 import { getCustomerPassUrl } from '../../utils/qrHelper';
