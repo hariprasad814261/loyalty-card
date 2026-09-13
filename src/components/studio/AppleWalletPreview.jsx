@@ -11,7 +11,8 @@ import {
   Star,
   QrCode,
   RotateCw,
-  Info
+  Info,
+  Camera
 } from 'lucide-react';
 import { DynamicQrCode } from '../common/DynamicQrCode';
 import { getCustomerPassUrl } from '../../utils/qrHelper';
