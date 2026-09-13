@@ -1,5 +1,48 @@
 [
   {
+    "id": "rest_hari_kitchen_2192",
+    "name": "hari kitchen",
+    "tagline": "",
+    "category": "Fine Dining",
+    "currency": "₹",
+    "logoUrl": "https://images.unsplash.com/photo-1610057099443-fde8c4d50f91?w=150&auto=format&fit=crop&q=80",
+    "bannerUrl": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=80",
+    "theme": {
+      "preset": "royal_chettinad",
+      "bgColor": "#0F0D0C",
+      "cardBgColor": "#1C1715",
+      "textColor": "#FAF8F5",
+      "accentColor": "#D97706",
+      "stampActiveColor": "#F59E0B",
+      "stampIcon": "utensils"
+    },
+    "program": {
+      "type": "stamps",
+      "totalStamps": 5,
+      "rewardTitle": "₹150 Discount on Heritage Family Meal",
+      "rewardDescription": "Collect 5 stamps on dining orders to claim ₹150 off your tandoor & curry feast.",
+      "vipSpendThreshold": 3000,
+      "vipReward": "VIP Gold Member: Free Chef Special treat on every visit",
+      "pointsPerCurrency": 1,
+      "currencyPerPoint": 0.05
+    },
+    "links": {
+      "phone": "+91 8667858089",
+      "whatsapp": "+918667858089",
+      "googleReviewUrl": "",
+      "instagramHandle": "",
+      "address": ""
+    },
+    "owner": {
+      "name": "hariprasad A",
+      "phone": "8667858089",
+      "pin": "8089"
+    },
+    "ownerName": "hariprasad A",
+    "ownerPhone": "8667858089",
+    "ownerPin": "8089"
+  },
+  {
     "id": "rest_001",
     "name": "Cafe Aroma & Roasters",
     "tagline": "Artisanal Coffee & Fresh Bakes",

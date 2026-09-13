@@ -9,10 +9,14 @@ import {
   Gift, 
   Award, 
   Sparkles, 
-  AlertCircle,
-  Clock,
-  Crown
+  AlertCircle, 
+  Clock, 
+  Crown,
+  QrCode,
+  Camera,
+  Check
 } from 'lucide-react';
+import { parseLoyaltyQrPayload } from '../../utils/qrHelper';
 
 export default function CashierScanner() {
   const { 
@@ -28,6 +32,9 @@ export default function CashierScanner() {
   const [searchPhone, setSearchPhone] = useState(normalizePhone(activeCustomerPhone) || '9876543210');
   const [billAmount, setBillAmount] = useState('');
   const [lastActionMessage, setLastActionMessage] = useState(null);
+  const [qrScanInput, setQrScanInput] = useState('');
+  const [scanError, setScanError] = useState('');
+  const [scanSuccess, setScanSuccess] = useState('');
 
   const { program = {} } = activeRestaurant || {};
   const totalStamps = program.totalStamps || 5;
@@ -43,6 +50,41 @@ export default function CashierScanner() {
       loyaltyPoints: 0,
       vouchers: []
     };
+
+  const handleProcessQrScan = (text) => {
+    setScanError('');
+    setScanSuccess('');
+    if (!text || !text.trim()) return;
+
+    const parsed = parseLoyaltyQrPayload(text.trim());
+    if (!parsed) {
+      setScanError('Unrecognized QR Code content');
+      return;
+    }
+
+    // Strict Restaurant-Specific Isolation Check
+    if (parsed.restaurantId && parsed.restaurantId !== activeRestaurant?.id) {
+      setScanError(`⚠️ Pass Mismatch: This QR belongs to restaurant ID "${parsed.restaurantId}". This terminal is strictly isolated to "${activeRestaurant?.name || 'this store'}".`);
+      return;
+    }
+
+    if (parsed.phone) {
+      const clean = normalizePhone(parsed.phone);
+      setSearchPhone(clean);
+      registerOrGetCustomer(clean);
+      if (typeof triggerImmediateSync === 'function') {
+        triggerImmediateSync(clean);
+      }
+      setScanSuccess(`✅ Verified Pass for +91 ${clean} (${activeRestaurant?.name})`);
+      setQrScanInput('');
+
+      if (parsed.voucherCode) {
+        handleRedeem(parsed.voucherCode);
+      }
+    } else {
+      setScanError('No valid customer phone number found in scanned QR');
+    }
+  };
 
   const handleLookup = (phoneToUse) => {
     const target = normalizePhone(phoneToUse || searchPhone);
@@ -123,18 +165,75 @@ export default function CashierScanner() {
       <div className="lf-grid-2">
         
         {/* Left Column: Phone Search & Keypad */}
+        {/* Left Column: QR Pass Scan & Phone Lookup */}
         <div className="lf-card">
           <div className="lf-card-header">
             <div className="lf-card-title">
-              <Phone size={18} className="lf-card-title-icon" />
-              <span>Guest Phone Lookup</span>
+              <QrCode size={18} className="lf-card-title-icon" />
+              <span>Scan Customer Pass or Phone Lookup</span>
             </div>
+            <span className="lf-badge lf-badge-gold">Auto-Match Store</span>
           </div>
 
           <div className="lf-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             
+            {/* Quick QR Barcode Scanner / Paste Section */}
+            <div style={{ padding: '12px 14px', borderRadius: '12px', background: 'rgba(212, 175, 55, 0.08)', border: '1px solid rgba(212, 175, 55, 0.25)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#F3E5AB', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Camera size={13} style={{ color: '#D4AF37' }} />
+                  <span>Scan or Paste Customer QR Pass</span>
+                </span>
+                <span style={{ fontSize: '10px', color: '#8E8478' }}>Instant Identification</span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <input
+                  type="text"
+                  value={qrScanInput}
+                  onChange={(e) => {
+                    setQrScanInput(e.target.value);
+                    handleProcessQrScan(e.target.value);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleProcessQrScan(qrScanInput);
+                    }
+                  }}
+                  placeholder="Scan pass barcode or paste URL..."
+                  className="lf-input"
+                  style={{ fontSize: '12px', padding: '8px 10px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleProcessQrScan(qrScanInput)}
+                  className="lf-btn lf-btn-gold"
+                  style={{ padding: '8px 12px', fontSize: '11.5px', flexShrink: 0 }}
+                >
+                  <Scan size={14} />
+                  <span>Verify</span>
+                </button>
+              </div>
+
+              {scanError && (
+                <div style={{ marginTop: '8px', padding: '8px 10px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#F87171', fontSize: '11.5px', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                  <AlertCircle size={14} style={{ flexShrink: 0, marginTop: '1px' }} />
+                  <span>{scanError}</span>
+                </div>
+              )}
+
+              {scanSuccess && (
+                <div style={{ marginTop: '8px', padding: '8px 10px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.4)', color: '#34D399', fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Check size={14} style={{ flexShrink: 0 }} />
+                  <span>{scanSuccess}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Direct Phone Number Lookup */}
             <div className="lf-form-group">
-              <label className="lf-label">10-Digit Mobile Number</label>
+              <label className="lf-label">10-Digit Mobile Number (Manual Entry)</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
                   type="tel"

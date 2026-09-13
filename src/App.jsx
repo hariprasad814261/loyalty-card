@@ -320,7 +320,7 @@ function HelpGuideModal({ onClose }) {
                 <span>Super-Admin Master Access</span>
               </div>
               <p style={{ fontSize: '11px', color: '#8E8478', margin: 0 }}>
-                Master Control Mode is protected by passphrase (default: <code style={{ color: '#F59E0B', background: 'rgba(245,158,11,0.1)', padding: '1px 4px', borderRadius: '4px' }}>admin2026</code>) to manage all restaurant clients, reset PINs, and onboard shops.
+                Master Control Mode is protected by a secure master passphrase to manage all restaurant clients, reset PINs, and onboard shops.
               </p>
             </div>
           </div>

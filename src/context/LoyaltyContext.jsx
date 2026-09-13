@@ -85,6 +85,8 @@ export function LoyaltyProvider({ children }) {
       const hash = window.location.hash || '';
       
       let restId = searchParams.get('pass') || searchParams.get('restaurant') || searchParams.get('resto') || searchParams.get('id') || searchParams.get('portal') || searchParams.get('shop');
+      const phoneParam = searchParams.get('phone') || searchParams.get('mobile') || searchParams.get('cust');
+      const cleanPhone = phoneParam ? normalizePhone(phoneParam) : null;
       let tab = 'studio';
       let mode = 'demo'; // 'demo' | 'guest' | 'merchant' | 'super-admin' | 'login'
 
@@ -98,16 +100,22 @@ export function LoyaltyProvider({ children }) {
         if (parts[0]) restId = parts[0];
         mode = 'merchant';
         tab = 'cashier';
-      } else if (pathname === '/pass' || pathname.startsWith('/pass/') || searchParams.has('pass') || hash.includes('pass')) {
+      } else if (pathname === '/pass' || pathname.startsWith('/pass/') || searchParams.has('pass') || hash.includes('pass') || cleanPhone) {
         const parts = pathname.replace(/^\/pass\/?/, '').split('/').filter(Boolean);
         if (parts[0]) restId = parts[0];
         mode = 'guest';
         tab = 'customer-pass';
       }
 
-      return { restId, tab, mode, isGuest: mode === 'guest' };
+      if (cleanPhone && cleanPhone.length === 10) {
+        try {
+          localStorage.setItem('guest_loyalty_phone', cleanPhone);
+        } catch {}
+      }
+
+      return { restId, tab, mode, isGuest: mode === 'guest', phone: cleanPhone };
     } catch {
-      return { restId: null, tab: 'studio', mode: 'demo', isGuest: false };
+      return { restId: null, tab: 'studio', mode: 'demo', isGuest: false, phone: null };
     }
   };
 
@@ -148,6 +156,12 @@ export function LoyaltyProvider({ children }) {
         setRouteMode(route.mode);
         setIsGuestMode(route.isGuest);
         if (route.tab) setActiveTab(route.tab);
+      }
+      if (route.phone && route.phone.length === 10) {
+        setActiveCustomerPhone(route.phone);
+        try {
+          localStorage.setItem('guest_loyalty_phone', route.phone);
+        } catch {}
       }
     };
 

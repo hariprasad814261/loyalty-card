@@ -11,6 +11,8 @@ import {
   Star,
   ExternalLink
 } from 'lucide-react';
+import { DynamicQrCode } from '../common/DynamicQrCode';
+import { getCustomerPassUrl } from '../../utils/qrHelper';
 
 export default function GoogleWalletPreview({ restaurant, customer, isFlipped, onFlipToggle }) {
   const { theme = {}, program = {}, links = {} } = restaurant || {};
@@ -177,12 +179,20 @@ export default function GoogleWalletPreview({ restaurant, customer, isFlipped, o
                 <span style={{ fontSize: '11.5px', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{customer?.phone || '9876543210'}</span>
               </div>
 
-              {/* QR Barcode */}
+              {/* Dynamic Customer & Restaurant QR Barcode */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ background: '#FFFFFF', padding: '3px', borderRadius: '4px' }}>
-                  <QrCode size={34} color="#000000" />
+                <div style={{ background: '#FFFFFF', padding: '2px', borderRadius: '4px' }}>
+                  <DynamicQrCode
+                    value={getCustomerPassUrl(restaurant?.id, customer?.phone || '9876543210')}
+                    size={38}
+                    margin={1}
+                    colorDark="#000000"
+                    colorLight="#FFFFFF"
+                    expandable={true}
+                    title={`${restaurant?.name || 'Store'} Google Pass`}
+                  />
                 </div>
-                <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', opacity: 0.5, marginTop: '2px' }}>TILL SCAN</span>
+                <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', opacity: 0.6, marginTop: '2px' }}>TILL SCAN</span>
               </div>
 
               {/* Flip Button */}

@@ -14,8 +14,14 @@ import {
   MessageSquare,
   KeyRound,
   ArrowRight,
-  TrendingUp
+  TrendingUp,
+  QrCode,
+  CheckCircle2,
+  Download,
+  X
 } from 'lucide-react';
+import { DynamicQrCode } from '../common/DynamicQrCode';
+import { getRestaurantPassUrl } from '../../utils/qrHelper';
 
 export function SuperAdminDashboard() {
   const { 
@@ -41,21 +47,53 @@ export function SuperAdminDashboard() {
   const [newShopCategory, setNewShopCategory] = useState('Restaurant & Dining');
   const [newOwnerName, setNewOwnerName] = useState('');
   const [newOwnerPhone, setNewOwnerPhone] = useState('');
-  const [newOwnerPin, setNewOwnerPin] = useState('1234');
+  const [newOwnerPin, setNewOwnerPin] = useState('');
   const [onboardError, setOnboardError] = useState('');
 
   const [copiedShopId, setCopiedShopId] = useState(null);
   const [copiedType, setCopiedType] = useState(null);
+  const [createdShop, setCreatedShop] = useState(null);
+  const [copiedCreatedPass, setCopiedCreatedPass] = useState(false);
 
-  // Authenticate Super Admin with Master Passphrase
-  const handleAdminAuth = (e) => {
+  // Authenticate Super Admin with Master Passphrase (SHA-256 Hashed)
+  const handleAdminAuth = async (e) => {
     e?.preventDefault();
-    if (adminKey.trim() === 'admin2026' || adminKey.trim() === '1234') {
-      setIsAuthenticated(true);
-      sessionStorage.setItem('loyalty_superadmin_auth', 'true');
-      setAuthError('');
-    } else {
-      setAuthError('Invalid master key. Default key is "admin2026"');
+    const input = adminKey.trim();
+    if (!input) return;
+
+    try {
+      const msgBuffer = new TextEncoder().encode(input);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      // SHA-256 hash of 814261 - prevents exposing plaintext passphrase in client bundle
+      const SUPER_ADMIN_HASH = '672e31e400d13dde63ff23e2e16e4a146465efec897a791711b0222f4a0962f0';
+
+      if (hashHex === SUPER_ADMIN_HASH) {
+        setIsAuthenticated(true);
+        sessionStorage.setItem('loyalty_superadmin_auth', 'true');
+        setAuthError('');
+      } else {
+        setAuthError('Invalid master passphrase. Access denied.');
+      }
+    } catch {
+      // Fallback verification
+      const hashFallback = (str) => {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+          hash = ((hash << 5) - hash) + str.charCodeAt(i);
+          hash |= 0;
+        }
+        return hash;
+      };
+      if (hashFallback(input) === -1744654941) { // Hash of 814261
+        setIsAuthenticated(true);
+        sessionStorage.setItem('loyalty_superadmin_auth', 'true');
+        setAuthError('');
+      } else {
+        setAuthError('Invalid master passphrase. Access denied.');
+      }
     }
   };
 
@@ -63,13 +101,16 @@ export function SuperAdminDashboard() {
     e.preventDefault();
     if (!newShopName || !newOwnerPhone) return;
 
+    const cleanOwnerPhone = newOwnerPhone.replace(/\D/g, '');
+    const finalPin = newOwnerPin.trim().length === 4 ? newOwnerPin.trim() : (cleanOwnerPhone.length >= 4 ? cleanOwnerPhone.slice(-4) : '8089');
+
     const res = onboardNewRestaurant({
       name: newShopName,
       tagline: newShopTagline || 'Authentic Handcrafted Flavors',
       category: newShopCategory,
       ownerName: newOwnerName || 'Store Manager',
-      ownerPhone: newOwnerPhone.replace(/\D/g, ''),
-      ownerPin: newOwnerPin || '1234'
+      ownerPhone: cleanOwnerPhone,
+      ownerPin: finalPin
     });
 
     if (!res || !res.success || res.error) {
@@ -77,13 +118,15 @@ export function SuperAdminDashboard() {
       return;
     }
 
+    const newShop = res.restaurant;
     setNewShopName('');
     setNewShopTagline('');
     setNewOwnerName('');
     setNewOwnerPhone('');
-    setNewOwnerPin('1234');
+    setNewOwnerPin('');
     setOnboardError('');
     setShowOnboardModal(false);
+    setCreatedShop(newShop);
   };
 
   const handleCopyLink = (text, shopId, type) => {
@@ -161,8 +204,11 @@ export function SuperAdminDashboard() {
               required
               autoFocus
               value={adminKey}
-              onChange={(e) => setAdminKey(e.target.value)}
-              placeholder="Master Passphrase (default: admin2026)"
+              onChange={(e) => {
+                setAdminKey(e.target.value);
+                setAuthError('');
+              }}
+              placeholder="Enter Master Passphrase"
               className="lf-input"
               style={{ textAlign: 'center', fontSize: '15px' }}
             />
@@ -180,10 +226,6 @@ export function SuperAdminDashboard() {
               <span>Enter Super-Admin</span>
             </button>
           </form>
-
-          <span style={{ fontSize: '10.5px', color: '#6E655B', display: 'block', marginTop: '16px' }}>
-            Default test key: <code style={{ color: '#D4AF37' }}>admin2026</code>
-          </span>
         </div>
       </div>
     );
@@ -351,7 +393,7 @@ export function SuperAdminDashboard() {
                   type="text"
                   required
                   maxLength="4"
-                  placeholder="1234"
+                  placeholder="4-digit PIN"
                   value={newOwnerPin}
                   onChange={(e) => setNewOwnerPin(e.target.value.replace(/\D/g, ''))}
                   className="lf-input lf-input-mono"
@@ -380,6 +422,84 @@ export function SuperAdminDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Newly Onboarded Shop QR Code Success Modal */}
+      {createdShop && (
+        <div className="lf-modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="lf-card animate-fade-in" style={{ maxWidth: '440px', width: '100%', padding: '28px 24px', textAlign: 'center', background: '#16120F', border: '1.5px solid rgba(212, 175, 55, 0.4)', borderRadius: '22px' }}>
+            <div 
+              style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '50%',
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '2px solid rgba(16, 185, 129, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#34D399',
+                margin: '0 auto 12px auto'
+              }}
+            >
+              <CheckCircle2 size={30} />
+            </div>
+
+            <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#D4AF37' }}>
+              👑 Shop Successfully Onboarded!
+            </span>
+            <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#FDFBF7', margin: '4px 0 2px 0' }}>
+              {createdShop.name}
+            </h2>
+            <span style={{ fontSize: '11.5px', color: '#8E8478' }}>
+              Owner: <strong style={{ color: '#D4CDC3' }}>{createdShop.owner?.name}</strong> • PIN: <strong style={{ color: '#D4AF37', letterSpacing: '0.08em' }}>{createdShop.owner?.pin}</strong>
+            </span>
+
+            {/* Live Unique Restaurant QR Code */}
+            <div style={{ background: '#FFFFFF', padding: '16px', borderRadius: '18px', boxShadow: '0 8px 24px rgba(0,0,0,0.5)', margin: '14px auto', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
+              <DynamicQrCode
+                value={getRestaurantPassUrl(createdShop.id)}
+                size={160}
+                margin={1}
+                colorDark="#000000"
+                colorLight="#FFFFFF"
+                expandable={true}
+                title={`${createdShop.name} Table QR`}
+                subtitle="Customers point phone camera to open their digital VIP pass"
+                downloadable={true}
+                downloadFilename={`${createdShop.name.replace(/\s+/g, '_')}_Table_QR.png`}
+              />
+              <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#1E293B', marginTop: '6px' }}>
+                UNIQUE TABLE & COUNTER QR CODE
+              </span>
+            </div>
+
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(getRestaurantPassUrl(createdShop.id));
+                  setCopiedCreatedPass(true);
+                  setTimeout(() => setCopiedCreatedPass(false), 2000);
+                }}
+                className="lf-btn lf-btn-secondary"
+                style={{ width: '100%', justifyContent: 'center', fontSize: '12px', padding: '9px' }}
+              >
+                {copiedCreatedPass ? <Check size={14} style={{ color: '#10B981' }} /> : <Copy size={14} />}
+                <span>{copiedCreatedPass ? 'Pass URL Copied!' : 'Copy Table Pass URL'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCreatedShop(null)}
+                className="lf-btn lf-btn-gold"
+                style={{ width: '100%', justifyContent: 'center', fontSize: '12.5px', padding: '10px' }}
+              >
+                <span>Done • Return to Dashboard</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -414,12 +534,27 @@ export function SuperAdminDashboard() {
                   gap: '16px'
                 }}
               >
-                {/* Shop Identity */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '260px' }}>
+                {/* Shop Identity + Live Unique QR Thumbnail */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '280px' }}>
+                  <div style={{ background: '#FFFFFF', padding: '3px', borderRadius: '10px', flexShrink: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>
+                    <DynamicQrCode
+                      value={passLink}
+                      size={46}
+                      margin={1}
+                      colorDark="#000000"
+                      colorLight="#FFFFFF"
+                      expandable={true}
+                      title={`${rest.name} Table QR`}
+                      subtitle="Unique restaurant table pass QR"
+                      downloadable={true}
+                      downloadFilename={`${rest.name.replace(/\s+/g, '_')}_Table_QR.png`}
+                    />
+                  </div>
+
                   {rest.logoUrl ? (
-                    <img src={rest.logoUrl} alt="logo" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'cover' }} />
+                    <img src={rest.logoUrl} alt="logo" style={{ width: '46px', height: '46px', borderRadius: '10px', objectFit: 'cover' }} />
                   ) : (
-                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--gold-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1A1409', fontWeight: 900 }}>
+                    <div style={{ width: '46px', height: '46px', borderRadius: '10px', background: 'var(--gold-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1A1409', fontWeight: 900 }}>
                       {rest.name.slice(0, 2).toUpperCase()}
                     </div>
                   )}

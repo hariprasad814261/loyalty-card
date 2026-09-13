@@ -231,5 +231,18 @@
     "lastVisit": "2026-09-04T05:24:24.661Z",
     "createdAt": "2026-09-04T05:24:24.661Z",
     "vouchers": []
+  },
+  {
+    "id": "cust_1788605118277",
+    "restaurantId": "rest_hari_kitchen_2192",
+    "phone": "9342705016",
+    "name": "Guest Customer",
+    "visits": 2,
+    "totalSpend": 0,
+    "loyaltyPoints": 20,
+    "lastVisit": "2026-09-05T10:45:38.595Z",
+    "createdAt": "2026-09-05T10:45:18.277Z",
+    "vouchers": [],
+    "isVip": false
   }
 ]

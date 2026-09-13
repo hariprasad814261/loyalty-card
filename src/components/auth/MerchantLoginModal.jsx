@@ -14,8 +14,15 @@ import {
   Phone, 
   Dices, 
   CheckCircle2,
-  PlusCircle
+  PlusCircle,
+  QrCode,
+  Copy,
+  Check,
+  MessageSquare,
+  Download
 } from 'lucide-react';
+import { DynamicQrCode } from '../common/DynamicQrCode';
+import { getRestaurantPassUrl } from '../../utils/qrHelper';
 
 export function MerchantLoginModal({ 
   prefilledPhone = '', 
@@ -53,6 +60,8 @@ export function MerchantLoginModal({
   const [regShopName, setRegShopName] = useState('');
   const [regPin, setRegPin] = useState('');
   const [regSuccessMessage, setRegSuccessMessage] = useState('');
+  const [createdRestaurant, setCreatedRestaurant] = useState(null);
+  const [copiedPass, setCopiedPass] = useState(false);
 
   const activeRest = prefilledRestaurant || restaurants.find(r => r.id === selectedRestId) || activeRestaurant || null;
 
@@ -166,12 +175,8 @@ export function MerchantLoginModal({
         const newShop = res.restaurant;
         // Automatically verify and log in
         verifyMerchantPin(newShop.id, finalPin);
-        setRegSuccessMessage(`🎉 Shop "${newShop.name}" registered! Your master PIN is ${finalPin}`);
+        setCreatedRestaurant(newShop);
         setIsLoading(false);
-
-        setTimeout(() => {
-          if (onClose) onClose();
-        }, 700);
       } catch (err) {
         setIsLoading(false);
         setError('Registration failed. Please try again.');
@@ -245,6 +250,101 @@ export function MerchantLoginModal({
           </button>
         )}
 
+        {/* NEW RESTAURANT CREATED: UNIQUE QR CODE & ONBOARDING SUCCESS SCREEN */}
+        {createdRestaurant ? (
+          <div className="animate-fade-in" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', padding: '6px 0' }}>
+            <div 
+              style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '50%',
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '2px solid rgba(16, 185, 129, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#34D399',
+                margin: '0 auto'
+              }}
+            >
+              <CheckCircle2 size={30} />
+            </div>
+
+            <div>
+              <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#D4AF37' }}>
+                🎉 Restaurant Loyalty Card Ready!
+              </span>
+              <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#FDFBF7', margin: '4px 0 2px 0' }}>
+                {createdRestaurant.name}
+              </h2>
+              <span style={{ fontSize: '11.5px', color: '#8E8478' }}>
+                Owner: <strong style={{ color: '#D4CDC3' }}>{createdRestaurant.owner?.name}</strong> • PIN: <strong style={{ color: '#D4AF37', letterSpacing: '0.08em' }}>{createdRestaurant.owner?.pin}</strong>
+              </span>
+            </div>
+
+            {/* Live Unique Restaurant QR Code */}
+            <div style={{ background: '#FFFFFF', padding: '16px', borderRadius: '18px', boxShadow: '0 8px 24px rgba(0,0,0,0.5)', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
+              <DynamicQrCode
+                value={getRestaurantPassUrl(createdRestaurant.id)}
+                size={160}
+                margin={1}
+                colorDark="#000000"
+                colorLight="#FFFFFF"
+                expandable={true}
+                title={`${createdRestaurant.name} Table QR`}
+                subtitle="Customers point phone camera to open their digital VIP pass"
+                downloadable={true}
+                downloadFilename={`${createdRestaurant.name.replace(/\s+/g, '_')}_Table_QR.png`}
+              />
+              <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#1E293B', marginTop: '6px' }}>
+                UNIQUE TABLE & COUNTER QR CODE
+              </span>
+            </div>
+
+            {/* Quick Actions */}
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(getRestaurantPassUrl(createdRestaurant.id));
+                  setCopiedPass(true);
+                  setTimeout(() => setCopiedPass(false), 2000);
+                }}
+                className="lf-btn lf-btn-secondary"
+                style={{ width: '100%', justifyContent: 'center', fontSize: '12px', padding: '9px' }}
+              >
+                {copiedPass ? <Check size={14} style={{ color: '#10B981' }} /> : <Copy size={14} />}
+                <span>{copiedPass ? 'Pass URL Copied!' : 'Copy Customer Pass URL'}</span>
+              </button>
+
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`Hello ${createdRestaurant.owner?.name}! 🎉\n\nYour VIP Loyalty & Cashier Portal is now live for *${createdRestaurant.name}*!\n\n🔑 Cashier Terminal: ${getRestaurantPassUrl(createdRestaurant.id)}\n🔒 4-Digit PIN: ${createdRestaurant.owner?.pin}\n\n🖨️ Customer QR Pass Link: ${getRestaurantPassUrl(createdRestaurant.id)}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="lf-btn lf-btn-secondary"
+                style={{ width: '100%', justifyContent: 'center', fontSize: '12px', padding: '9px', color: '#25D366', borderColor: 'rgba(37, 211, 102, 0.3)' }}
+              >
+                <MessageSquare size={14} />
+                <span>Share via WhatsApp</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  verifyMerchantPin(createdRestaurant.id, createdRestaurant.owner?.pin || '1234');
+                  if (onClose) onClose();
+                }}
+                className="lf-btn lf-btn-gold"
+                style={{ width: '100%', justifyContent: 'center', fontSize: '13px', padding: '11px', marginTop: '4px' }}
+              >
+                <ShieldCheck size={16} />
+                <span>Enter Store Cashier POS</span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Brand & Store Header */}
         <div style={{ textAlign: 'center', marginBottom: '14px' }}>
           <div 
@@ -651,7 +751,7 @@ export function MerchantLoginModal({
                 maxLength="4"
                 value={regPin}
                 onChange={(e) => setRegPin(e.target.value.replace(/\D/g, ''))}
-                placeholder={regPhone.length >= 4 ? `e.g. ${regPhone.slice(-4)} (or click Generate PIN)` : 'e.g. 1234 or click Generate PIN'}
+                placeholder={regPhone.length >= 4 ? `e.g. ${regPhone.slice(-4)} (or click Generate PIN)` : 'Enter 4-digit PIN (or click Generate PIN)'}
                 className="lf-input lf-input-mono"
                 style={{ padding: '9px 12px', fontSize: '14px', letterSpacing: '0.15em', textAlign: 'center', fontWeight: 700, color: '#F3E5AB' }}
               />
@@ -700,9 +800,11 @@ export function MerchantLoginModal({
             </button>
           </form>
         )}
+        </>
+      )}
 
         {/* Alternate Action: View as Customer */}
-        {onContinueAsGuest && (
+        {onContinueAsGuest && !createdRestaurant && (
           <div style={{ marginTop: '14px', textAlign: 'center', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <button
               type="button"

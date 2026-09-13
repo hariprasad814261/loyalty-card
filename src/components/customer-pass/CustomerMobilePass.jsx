@@ -18,9 +18,12 @@ import {
   Smartphone,
   Crown,
   Lock,
-  Star
+  Star,
+  Download
 } from 'lucide-react';
 import { MerchantLoginModal } from '../auth/MerchantLoginModal';
+import { DynamicQrCode } from '../common/DynamicQrCode';
+import { getCustomerPassUrl, getVoucherRedeemUrl } from '../../utils/qrHelper';
 
 export default function CustomerMobilePass() {
   const { 
@@ -417,6 +420,7 @@ export default function CustomerMobilePass() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {currentCustomer.vouchers.map((v, i) => {
                   const isRedeemed = v.status === 'redeemed';
+                  const voucherQrUrl = getVoucherRedeemUrl(activeRestaurant?.id, displayedPhone, v.code);
                   return (
                     <div
                       key={i}
@@ -426,20 +430,36 @@ export default function CustomerMobilePass() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
+                        gap: '12px',
                         background: isRedeemed ? 'rgba(0,0,0,0.3)' : 'rgba(212, 175, 55, 0.12)',
                         border: isRedeemed ? '1px dashed rgba(255,255,255,0.1)' : '1px solid rgba(212, 175, 55, 0.4)',
                         opacity: isRedeemed ? 0.5 : 1
                       }}
                     >
-                      <div>
+                      <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#FDFBF7' }}>{v.title}</div>
                         <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#F3E5AB', fontWeight: 700, marginTop: '2px' }}>
                           CODE: <span>{v.code}</span>
                         </div>
+                        <span className={isRedeemed ? 'lf-badge' : 'lf-badge lf-badge-gold'} style={{ fontSize: '9px', marginTop: '4px', display: 'inline-block' }}>
+                          {isRedeemed ? 'REDEEMED' : 'READY TO USE'}
+                        </span>
                       </div>
-                      <span className={isRedeemed ? 'lf-badge' : 'lf-badge lf-badge-gold'} style={{ fontSize: '9.5px' }}>
-                        {isRedeemed ? 'REDEEMED' : 'READY TO USE'}
-                      </span>
+
+                      {!isRedeemed && (
+                        <div style={{ background: '#FFFFFF', padding: '3px', borderRadius: '8px', flexShrink: 0 }}>
+                          <DynamicQrCode
+                            value={voucherQrUrl}
+                            size={52}
+                            margin={1}
+                            colorDark="#000000"
+                            colorLight="#FFFFFF"
+                            expandable={true}
+                            title={`Voucher: ${v.title}`}
+                            subtitle={`Code: ${v.code} • Tap to scan`}
+                          />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -447,14 +467,25 @@ export default function CustomerMobilePass() {
             </div>
           )}
 
-          {/* Barcode Box */}
-          <div style={{ background: '#FFFFFF', padding: '14px', borderRadius: '18px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.15)' }}>
-            <QrCode size={72} color="#000000" />
-            <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 900, color: '#0F172A', marginTop: '4px', letterSpacing: '0.08em' }}>
-              {displayedPhone}
+          {/* Unique Customer Pass Dynamic QR Barcode */}
+          <div style={{ background: '#FFFFFF', padding: '16px 14px 12px 14px', borderRadius: '18px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.15)' }}>
+            <DynamicQrCode
+              value={getCustomerPassUrl(activeRestaurant?.id, displayedPhone)}
+              size={110}
+              margin={1}
+              colorDark="#000000"
+              colorLight="#FFFFFF"
+              expandable={true}
+              title={`${activeRestaurant?.name || 'VIP'} Pass • +91 ${displayedPhone}`}
+              subtitle="Show to cashier or point camera to check in & earn stamps"
+              downloadable={true}
+              downloadFilename={`${(activeRestaurant?.name || 'Store').replace(/\s+/g, '_')}_Customer_${displayedPhone}_QR.png`}
+            />
+            <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 900, color: '#0F172A', marginTop: '6px', letterSpacing: '0.08em' }}>
+              +91 {displayedPhone}
             </div>
-            <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B', textTransform: 'uppercase', fontWeight: 700 }}>
-              SHOW TO CASHIER WHEN BILLING
+            <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B', textTransform: 'uppercase', fontWeight: 700, marginTop: '2px' }}>
+              SHOW TO CASHIER WHEN BILLING • TAP TO EXPAND
             </span>
           </div>
 
